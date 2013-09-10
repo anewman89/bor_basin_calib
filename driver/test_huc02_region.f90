@@ -1,16 +1,28 @@
 program test_upper_colo
+  use nrtype
   use snow17_sac
-
+  use constants, only: sec_hour, sec_day
+  use gauge_calib, only: read_namelist, calc_pet_pt, sfc_pressure, &
+                         sce_param_setup, read_cida_areal_forcing, &
+                         read_streamflow, calc_rmse, calc_mse, calc_nse, &
+                         calc_kge,get_start_points, get_model_state,     &
+		         spin_up_first_year
   implicit none
 
 
-
 !local variables
-  integer :: i,ntau,k,m,j,cnt,start_offset
+  integer(I4B) :: i,ntau,k,m,j,cnt,start_offset
+
   logical :: spin_up_flag
-  integer :: error,isce,num_basin,ll
+
+  integer(I4B) :: error,isce,num_basin
+
+  integer(I4B) :: end_pt	!length of simulation
+
   !integer :: opt
-  real :: rmse,dtuh
+
+  real(dp) :: obj_val	!return value from objective function
+  real(sp) :: dtuh	!for unit hydrograph
 
 !  character(len=1024) :: opt_name
 !  character(len=2)    :: huc_02
@@ -23,26 +35,30 @@ program test_upper_colo
 !  real, dimension(:), allocatable   :: bl     !lower bounds on parameter set
 !  real, dimension(:), allocatable   :: bu     !upper bounds on parameter set
 
-  real, dimension(30)   :: a      !parameter set
-  real                  :: af     !objective function value
-  real, dimension(30)   :: bl     !lower bounds on parameter set
-  real, dimension(30)   :: bu     !upper bounds on parameter set
+  real(sp), dimension(30)   :: a      !parameter set
+  real(sp)                  :: af     !objective function value
+  real(sp), dimension(30)   :: bl     !lower bounds on parameter set
+  real(sp), dimension(30)   :: bu     !upper bounds on parameter set
 
 
 !sac-sma state variables
-  real              :: uztwc,uzfwc,lztwc,lzfsc,lzfpc,adimc
+  real(dp)              :: uztwc,uzfwc,lztwc,lzfsc,lzfpc,adimc
 
-!previous state for spinup check
-  real              :: uztwc_prev,uzfwc_prev,lztwc_prev
-  real              :: lzfsc_prev,lzfpc_prev,adimc_prev
+!single precision sac-sma state variables
+  real(sp)		:: uztwc_sp
+  real(sp)		:: uzfwc_sp
+  real(sp)		:: lztwc_sp
+  real(sp)		:: lzfsc_sp
+  real(sp)		:: lzfpc_sp
+  real(sp)		:: adimc_sp
 
-!diff variables
-  real              :: uztwc_diff,uzfwc_diff,lztwc_diff
-  real              :: lzfsc_diff,lzfpc_diff,adimc_diff
+  real(sp)		:: pet_sp
+  real(sp)		:: tair_sp
+  real(sp)		:: precip_sp
 
 !state variables from end of calibration period
-  real              :: cal_uztwc, cal_uzfwc, cal_lztwc
-  real              :: cal_lzfsc, cal_lzfpc, cal_adimc
+  real(dp)              :: cal_uztwc, cal_uzfwc, cal_lztwc
+  real(dp)              :: cal_lzfsc, cal_lzfpc, cal_adimc
 
 
 !sac-sma output variables
@@ -52,43 +68,50 @@ program test_upper_colo
 !  real, dimension(:), allocatable    :: snowh, sneqv, snow, raim_snow17      !output variables
 
 !sac-sma output variables
-  real, dimension(36500)    :: qs,qg,eta,tci,route_tci
+  real(sp), dimension(36500)    :: qs,qg,eta,tci,route_tci
+
+!double precision
+  real(dp), dimension(36500)    :: tci_dp,route_tci_dp,streamflow_dp
+
 
 !snow-17 output variables
-  real, dimension(36500)    :: snowh, sneqv, snow, raim_snow17 	!output variables
+  real(sp), dimension(36500)    :: snowh, sneqv, snow, raim_snow17 	!output variables
 
 !snow-17 carry over variables
-  real :: tprev				!carry over variable
-  real, dimension(19)  :: cs			!carry over variable
+  real(sp) :: tprev				!carry over variable
+  real(sp), dimension(19)  :: cs			!carry over variable
 
 !snow-17 surface pressure
-  real :: pa
+  real(dp) :: pa
 
 !unit hydrograph
-  real,dimension(1000)       :: unit_hydro
+  real(sp),dimension(1000)       :: unit_hydro
 
 !single iteration parameter info
-  integer                          :: bid,loc,sid
-  integer,dimension(1000)            :: basin,seed
-  real,   dimension(1000,21)         :: params
+  integer(I4B)                          :: bid,loc,sid
+  integer(I4B),dimension(1000)            :: basin,seed
+  real(dp),   dimension(1000,21)         :: params
 
+!file read location information
+  integer(I4B)			:: obs_offset
+  integer(I4B)			:: obs_val_offset
+  integer(I4B)			:: forcing_offset
+  integer(I4B)			:: forcing_val_offset
+  integer(I4B)			:: val_length
+
+  real(dp)			:: spinup_crit   !criteria for spin-up convergence
 
 !
 !   code starts below
 !
 
+!set spin-up criteria
+!may want to not have this hardcoded in the future (AJN 9/9/2013)
+  spinup_crit = 0.1_dp
 
 !read namelists
   call read_namelist
 
-!set spin_up_flag,cnt
-  cnt = 0
-
-  if(val_period .eq. 0) then
-    spin_up_flag = .true.
-  else
-    spin_up_flag = .false.
-  endif
 
 
 !allocate variables  !dynamic allocation removed for now (AJN, 6/30/13)
@@ -143,9 +166,7 @@ program test_upper_colo
 !  endif
 
 
-!read in verification streamflow data
-!this determines the starting point for the calibration based on observed record...
-  call read_streamflow(stream_name,sim_len,start_offset)
+
 
 !allocate if validation period
 !removed for now (AJN, 6/30/13)
@@ -181,25 +202,25 @@ program test_upper_colo
 !  end if
 
 
+!first, find the proper time ranges for the gauge being worked with
+  call get_start_points(obs_offset,obs_val_offset,forcing_offset,forcing_val_offset,val_length)
+
+!read in verification streamflow data
+!this determines the starting point for the calibration based on observed record...
+  call read_streamflow(obs_offset,obs_val_offset,val_length)
+
 !get forcing data
-  call read_cida_areal_forcing(forcing_name,start_offset,sim_len)
+  call read_cida_areal_forcing(forcing_offset,forcing_val_offset,val_length)
 
-  alat = lat
-
-!calculate potential evapotranspiration via priestley-taylor method since daymet has no wind data
-  call julianday()
-
-!moved pet to sce portion (6/11/2013)
-!  call calc_pet_pt(pet)
 
 !setup parameter, upper & lower bound arrays
-
   call sce_param_setup(a,bl,bu)
 
 
 ! open up ASCII output file for sce
-!  isce = 50 
-!  OPEN(unit=isce,FILE=TRIM(sce_fname),FORM='formatted')
+  isce = 50 
+  OPEN(unit=isce,FILE=TRIM(sce_fname),FORM='formatted')
+
 
 !  opt = 1   !opt=1 runs sce code
 !call sce
@@ -210,9 +231,9 @@ program test_upper_colo
   else
 
     if(val_period .eq. 0)then
-      ll = sim_len
+      end_pt = sim_length
     else
-      ll = val_length
+      end_pt = val_length
     endif
 
     !setup a few parameters quick
@@ -252,16 +273,6 @@ program test_upper_colo
       a(i-1) = params(loc,i)
 !      print *,params(loc,i)
     enddo
-!    a(20) = nmf(1)
-!    a(21) = tipm(1)
-!    a(22) = mbase(1)
-!    a(23) = plwhc(1)
-!    a(24) = daygm(1)
-!    a(25) = adimp(1)
-!    a(26) = pctim(1)
-!    a(27) = riva
-!    a(28) = side
-!    a(29) = rserv
 
 !place non optimized parameters (from namelist)
     a(21) = nmf(1)
@@ -274,102 +285,12 @@ program test_upper_colo
     a(28) = riva
     a(29) = side
     a(30) = rserv
-!    print *,'here'
-
 
 !    print *,elev,a(1),a(2),a(3),a(4)
     !set surface pressure for snow17
-    pa   = 33.86 * (29.9 - (0.335 * (elev/100.0)) + (0.00022*((elev/100.)**2.4)))
+    call sfc_pressure(elev,pa)
 
     call calc_pet_pt(a)
-
-  !set initial state
-    uztwc = init_smois(1)
-    uzfwc = init_smois(2)
-    lztwc = init_smois(3)
-    lzfsc = init_smois(4)
-    lzfpc = init_smois(5)
-    adimc = init_smois(6)
-
-    tprev = 0.
-    cs    = 0.
-
-    qs = 0.0
-    qg = 0.0
-    tci = 0.0
-    eta = 0.0
-    
-!    print *,'here'
-    !need to do model spin up
-
-    do while (spin_up_flag)
-      !run model combo over first year (use first full water year,see namelist)
-      !first set previous state variables to initial state variables
-      uztwc_prev = uztwc
-      uzfwc_prev = uzfwc
-      lztwc_prev = lztwc
-      lzfsc_prev = lzfsc
-      lzfpc_prev = lzfpc
-      adimc_prev = adimc
-      !run first complete water year
-      do i = 1,365
-
-	CALL EXSNOW19(int(dt),int(dt/3600.),day(i),month(i),year(i),&
-	  !SNOW17 INPUT AND OUTPUT VARIABLES
-			    precip(i),tair(i),raim_snow17(i),sneqv(i),snow(i),snowh(i),&
-	  !SNOW17 PARAMETERS
-  !ALAT,SCF,MFMAX,MFMIN,UADJ,SI,NMF,TIPM,MBASE,PXTEMP,PLWHC,DAYGM,ELEV,PA,ADC
-!			    alat,a(1),a(2),a(3),a(4),a(5),a(7),a(8),a(9),&
-!			    a(6),a(10),a(11),elev,pa,adc(1),&
-			    alat,a(1),a(2),a(3),a(4),a(5),a(21),a(22),a(23),&
-			    a(6),a(24),a(25),elev,pa,adc,&
-	  !SNOW17 CARRYOVER VARIABLES
-			    cs(1),tprev) 
-
- ! print *,'here 4'
-	call exsac(1,real(dt),raim_snow17(i),tair(i),pet(i),&
-	  !SAC PARAMETERS
-!UZTWM,UZFWM,UZK,PCTIM,ADIMP,RIVA,ZPERC, &
-!REXP,LZTWM,LZFSM,LZFPM,LZSK,LZPK,PFREE, &
-!SIDE,RSERV, &
-!a(12),a(13),a(18),a(23),a(17),a(25),a(21),a(22),a(14),a(16),a(15),a(20),a(19),a(24),a(26),a(27)
-!			a(12),a(13),a(18),a(23),a(17),a(25),a(21),&
-!			a(22),a(14),a(16),a(15),a(20),a(19),a(24),&
-!			a(26),a(27),&
-			a(7),a(8),a(12),a(27),a(26),a(28),a(15), &
-			a(16),a(9),a(11),a(10),a(14),a(13),a(17),&
-			a(29),a(30), &
-	  !SAC State variables
-			  uztwc,uzfwc,lztwc,lzfsc,lzfpc,adimc,&
-	  !SAC OUTPUTS
-			  qs(i),qg(i),tci(i),eta(i))
-
-      enddo !end model loop
-
-      !check for convergence
-      !use diff of all state variables.
-      uztwc_diff = abs(uztwc-uztwc_prev)
-      uzfwc_diff = abs(uzfwc-uzfwc_prev)
-      lztwc_diff = abs(lztwc-lztwc_prev)
-      lzfsc_diff = abs(lzfsc-lzfsc_prev)
-      lzfpc_diff = abs(lzfpc-lzfpc_prev)
-      adimc_diff = abs(adimc-adimc_prev)
-
-
-      cnt = cnt + 1
-      !print *,cnt,uztwc_diff,uzfwc_diff,lztwc_diff,lzfsc_diff,lzfpc_diff,adimc_diff
-      !print *,cnt,lztwc,lztwc_prev,lztwc_diff
-      !print *,cnt,lzfpc,lzfpc_prev,lzfpc_diff
-
-      if(uztwc_diff .lt. 0.1 .and. uzfwc_diff .lt. 0.1 .and. lztwc_diff .lt. 0.1 .and.&
-         lzfsc_diff .lt. 0.1 .and. lzfpc_diff .lt. 0.1 .and. adimc_diff .lt. 0.1) then
-
-	spin_up_flag = .false.
-
-      endif
-
-    enddo  !end while loop for spin up
-
 
     if(val_period .ne. 0) then
 	call get_model_state(cal_uztwc, cal_uzfwc, cal_lztwc, &
@@ -384,9 +305,13 @@ program test_upper_colo
 
 	print *,cal_uztwc, cal_uzfwc, cal_lztwc, &
                              cal_lzfsc, cal_lzfpc, cal_adimc
+    else
+      call spin_up_first_year(a, spinup_crit, uztwc, uzfwc, lztwc, &
+                              lzfsc, lzfpc, adimc)
     endif
 
-    !steup a file for model state output quickly...
+
+    !setup a file for model state output quickly...
     pt1=trim(model_out)
     if(val_period .eq. 0) then
       pt2='.model_state'
@@ -398,22 +323,44 @@ program test_upper_colo
 
     open(unit=46,FILE=trim(pt1),FORM='formatted')
 
-    do i = 1,ll
 
-	CALL EXSNOW19(int(dt),int(dt/3600.),day(i),month(i),year(i),&
+!set output, carry over variables to zero
+    tprev = 0.0
+    cs    = 0.0
+
+    qs = 0.0
+    qg = 0.0
+    tci = 0.0
+    eta = 0.0
+
+!set single precision sac state variables
+    uztwc_sp = real(uztwc,kind(sp))
+    uzfwc_sp = real(uzfwc,kind(sp))
+    lztwc_sp = real(lztwc,kind(sp))
+    lzfsc_sp = real(lzfsc,kind(sp))
+    lzfpc_sp = real(lzfpc,kind(sp))
+    adimc_sp = real(adimc,kind(sp))
+
+    do i = 1,end_pt,1
+    !set single precision inputs
+      tair_sp   = real(tair(i),kind(sp))
+      precip_sp = real(precip(i),kind(sp))
+      pet_sp    = real(pet(i),kind(sp))
+
+	CALL EXSNOW19(int(dt),int(dt/sec_hour),day(i),month(i),year(i),&
 	  !SNOW17 INPUT AND OUTPUT VARIABLES
-			    precip(i),tair(i),raim_snow17(i),sneqv(i),snow(i),snowh(i),&
+			    precip_sp,tair_sp,raim_snow17(i),sneqv(i),snow(i),snowh(i),&
 	  !SNOW17 PARAMETERS
   !ALAT,SCF,MFMAX,MFMIN,UADJ,SI,NMF,TIPM,MBASE,PXTEMP,PLWHC,DAYGM,ELEV,PA,ADC
 !			    alat,a(1),a(2),a(3),a(4),a(5),a(7),a(8),a(9),&
 !			    a(6),a(10),a(11),elev,pa,adc(1),&
-			    alat,a(1),a(2),a(3),a(4),a(5),a(21),a(22),a(23),&
-			    a(6),a(24),a(25),elev,pa,adc,&
+			    real(lat,kind(sp)),a(1),a(2),a(3),a(4),a(5),a(21),a(22),a(23),&
+			    a(6),a(24),a(25),real(elev,kind(sp)),real(pa,kind(sp)),adc,&
 	  !SNOW17 CARRYOVER VARIABLES
-			    cs(1),tprev) 
+			    cs,tprev) 
 
  ! print *,'here 4'
-	call exsac(1,real(dt),raim_snow17(i),tair(i),pet(i),&
+	call exsac(1,real(dt),raim_snow17(i),tair_sp,pet_sp,&
 	  !SAC PARAMETERS
 !UZTWM,UZFWM,UZK,PCTIM,ADIMP,RIVA,ZPERC, &
 !REXP,LZTWM,LZFSM,LZFPM,LZSK,LZPK,PFREE, &
@@ -426,17 +373,17 @@ program test_upper_colo
 			a(16),a(9),a(11),a(10),a(14),a(13),a(17),&
 			a(29),a(30), &
 	  !SAC State variables
-			  uztwc,uzfwc,lztwc,lzfsc,lzfpc,adimc,&
+			  uztwc_sp,uzfwc_sp,lztwc_sp,lzfsc_sp,lzfpc_sp,adimc_sp,&
 	  !SAC OUTPUTS
 			  qs(i),qg(i),tci(i),eta(i))
 !print *,pet(i),a(20),tair(i),precip(i)
 
-      write(unit=46,30) year(i),month(i),day(i),hour(i),uztwc,uzfwc,lztwc,lzfsc,lzfpc,adimc,eta(i)
+      write(unit=46,30) year(i),month(i),day(i),hour(i),uztwc_sp,uzfwc_sp,lztwc_sp,lzfsc_sp,lzfpc_sp,adimc_sp,eta(i)
 
     enddo  !end simulation loop
     close(unit=46)
 
-    dtuh = real(dt/86400.)
+    dtuh = real(dt/sec_day)
 
     if (a(18) .le. 0.0 .and. a(19) .le. 0.0) THEN
       k = 0
@@ -446,37 +393,61 @@ program test_upper_colo
       m = 1000
     end if
     ntau = 0
+
   !call unit hydrograph routine
     if(a(18) .gt. 0.0) then
-      call DUAMEL(tci,1,unit_hydro,a(18),a(19),dtuh,ll-1,m,route_tci,k,ntau)
+      call DUAMEL(tci,1,unit_hydro,a(18),a(19),dtuh,end_pt-1,m,route_tci,k,ntau)
 				!shape,scale
-
-!      call calc_rmse(route_tci+qg,streamflow,mean_obs,rmse)
-      call calc_rmse(route_tci,streamflow,mean_obs,rmse)
-      if(trim(metric) .eq. "rmse" .or. trim(metric) .eq. "RMSE") then
-	print *,'rmse or mse: ',rmse
-	print *,'mean obs:',mean_obs
-      else
-	print *,'nse: ',rmse*-1
-	print *,'mean obs:',mean_obs
-      end if
-    else
-!      call calc_rmse(tci+qg,streamflow,mean_obs,rmse)
-      call calc_rmse(tci,streamflow,mean_obs,rmse)
-      print *,'score: ',rmse
-      print *,'mean obs:',mean_obs
     endif
+
+
+  !need to pass kind(dp) to objective function subroutines
+  route_tci_dp = real(route_tci, kind(dp))
+  streamflow_dp = real(streamflow, kind(dp))
+  tci_dp = real(tci, kind(dp))
+
+  if(a(18) .gt. 0.0) then
+    if(trim(metric) .eq. "rmse" .or. trim(metric) .eq. "RMSE") then
+      print *,'rmse'
+      call calc_rmse(route_tci_dp,streamflow_dp,end_pt,obj_val)
+      print *,'rmse done'
+    elseif(trim(metric) .eq. "mse" .or. trim(metric) .eq. "MSE") then
+      call calc_mse(route_tci_dp,streamflow_dp,end_pt,obj_val)
+    elseif(trim(metric) .eq. "nse" .or. trim(metric) .eq. "NSE") then
+      call calc_nse(route_tci_dp,streamflow_dp,end_pt,obj_val)
+    elseif(trim(metric) .eq. "kge" .or. trim(metric) .eq. "KGE") then
+      call calc_kge(route_tci_dp,streamflow_dp,end_pt,obj_val)
+    endif
+  else
+    if(trim(metric) .eq. "rmse" .or. trim(metric) .eq. "RMSE") then
+      call calc_rmse(tci_dp,streamflow_dp,end_pt,obj_val)
+    elseif(trim(metric) .eq. "mse" .or. trim(metric) .eq. "MSE") then
+      call calc_mse(tci_dp,streamflow_dp,end_pt,obj_val)
+    elseif(trim(metric) .eq. "nse" .or. trim(metric) .eq. "NSE") then
+      call calc_nse(tci_dp,streamflow_dp,end_pt,obj_val)
+    elseif(trim(metric) .eq. "kge" .or. trim(metric) .eq. "KGE") then
+      call calc_kge(tci_dp,streamflow_dp,end_pt,obj_val)
+    endif
+  endif
+
+    print *,'Objective function value: ',obj_val
+    print *,'mean obs:',mean_obs
+
     !format statement for output
     30 FORMAT(I4.4, 3(1x,I2.2),7(F12.4))
-    if(val_period .eq. 0) then
+
+    !output file name setup
+    if(val_period .eq. 0) then   !calibration
       open(unit=45,FILE=trim(model_out),FORM='formatted')
-    else
+    else	!validation
       pt1 = trim(model_out)
       pt2 = '_val'
       pt1 = trim(pt1)//trim(pt2)
       open(unit=45,FILE=trim(pt1),FORM='formatted')
     endif
-    do i = 1,sim_len
+
+    !output to a file
+    do i = 1,end_pt
       if(a(18) .gt. 0) then
 !	write(unit=45,30) year(i),month(i),day(i),hour(i),sneqv(i)*1000.,precip(i),raim_snow17(i),pet(i),tair(i),(route_tci(i)+qg(i)),streamflow(i)
 	write(unit=45,30) year(i),month(i),day(i),hour(i),sneqv(i)*1000.,precip(i),raim_snow17(i),pet(i),tair(i),route_tci(i),streamflow(i)
@@ -492,7 +463,6 @@ program test_upper_colo
 
 
   ! close ASCII output file
-  !CLOSE(isce)
+  CLOSE(isce)
 
 end program
-

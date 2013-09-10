@@ -1,10 +1,10 @@
 #/bin/bash
 
 #compile everything
-#deprecated, switching to makefile (06 Sept 2013) AJN
+#deprecated, switching to makefile (11 Sept 2013) AJN
 
-pgf90 -O3 -Mfreeform -r8 -c ./snow17_sac.f90
-pgf90 -O3 -Mfreeform -r8 -c ../sce/functn.f90
+pgf90 -O3 -Mfreeform -r8 -c ../share/snow17_sac.f90
+pgf90 -O3 -Mfreeform -r8 -c ../share/functn.f90
 
 pgf77 -O3 -r8 -c ../sce/sce_new.f -o sce_new.o
 pgf77 -O3 -r8 -c ../sac/sac1.f

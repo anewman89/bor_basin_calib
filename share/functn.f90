@@ -1,18 +1,21 @@
 FUNCTION FUNCTN(NOPT,A)
-  USE snow17_sac
+  use nrtype
+  use gauge_calib, only: snow17_sacsma_eval
+
   IMPLICIT NONE
+
 !input variables
-  integer,                intent(in) :: nopt
-  real, dimension(30), intent(inout) :: a
+  integer(I4B),		intent(in) 	:: nopt
+  real(sp), dimension(30),	intent(inout)	:: a
 
 !local variables 
-  real :: rmse
-  real :: functn
+  real(dp) :: obj_val
+  real(sp) :: functn
 
 
-  call snow17_sacsma_rmse(a,rmse)
+  call snow17_sacsma_eval(a,obj_val)
 
 ! save objective function value
-  FUNCTN = rmse 
+  FUNCTN = real(obj_val,kind(sp))
 ! ---------------------------------------------------------------------------------------
 END FUNCTION FUNCTN

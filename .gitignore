@@ -18,6 +18,6 @@ bin/
 driver/old
 driver/hru
 
-#no text files in driver directory
+#no text files in driver or share directory
 driver/*.txt
 share/*.txt
