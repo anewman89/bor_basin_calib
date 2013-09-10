@@ -1,0 +1,39 @@
+#/bin/bash
+
+#compile everything
+#deprecated, switching to makefile (06 Sept 2013) AJN
+
+pgf90 -O3 -Mfreeform -r8 -c ./snow17_sac.f90
+pgf90 -O3 -Mfreeform -r8 -c ../sce/functn.f90
+
+pgf77 -O3 -r8 -c ../sce/sce_new.f -o sce_new.o
+pgf77 -O3 -r8 -c ../sac/sac1.f
+pgf77 -O3 -r8 -c ../sac/ex_sac1.f
+pgf77 -O3 -r8 -c ../sac/duamel.f
+
+pgf90 -O3 -r8 -c ../snow19/zero19.f
+pgf90 -O3 -r8 -c ../snow19/rout19.f
+pgf90 -O3 -r8 -c ../snow19/aesc19.f
+pgf90 -O3 -r8 -c ../snow19/melt19.f
+pgf90 -O3 -r8 -c ../snow19/SNEW.f
+pgf90 -O3 -r8 -c ../snow19/SNOWT.f
+pgf90 -O3 -r8 -c ../snow19/SNOWPACK.f
+pgf90 -O3 -r8 -c ../snow19/adjc19.f
+pgf90 -O3 -r8 -c ../snow19/aeco19.f
+pgf90 -O3 -r8 -c ../snow19/updt19.f
+pgf90 -O3 -r8 -c ../snow19/SNDEPTH.f
+pgf90 -O3 -r8 -c ../snow19/PACK19.f
+pgf90 -O3 -r8 -c ../snow19/exsnow19.f
+pgf90 -O3 -r8 -Mfreeform -c ./test_huc02_region.f90
+
+
+#create exe
+pgf90 -O3 -r8 -I./ -o test_hcdn_huc02.exe snow17_sac.o functn.o sce_new.o sac1.o ex_sac1.o duamel.o zero19.o rout19.o aesc19.o melt19.o SNEW.o SNOWT.o SNOWPACK.o adjc19.o aeco19.o updt19.o SNDEPTH.o PACK19.o exsnow19.o test_huc02_region.o
+
+#move to bin directory
+mv test_hcdn_huc02.exe ../bin
+
+
+#clean up things
+rm *.o
+rm *.mod

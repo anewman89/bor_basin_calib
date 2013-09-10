@@ -1,0 +1,23 @@
+#standard git ignore file for my various repositories
+#created by: Andy Newman
+#first version: 05 Sept 2013
+
+#no .a or .o files
+*.[oa]
+
+#no .mod files
+*.mod
+
+#no text editor temp files
+*~
+
+#not the bin directory
+bin/
+
+#not the driver/old or driver/hru
+driver/old
+driver/hru
+
+#no text files in driver directory
+driver/*.txt
+share/*.txt
