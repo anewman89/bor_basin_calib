@@ -10,7 +10,7 @@
 #========================================================================
 
 # Define core directory below which everything resides
-F_MASTER_DIR = /home/anewman/gauge_calib
+F_MASTER_DIR = /home/anewman/bor_basin_calib
 
 # Location of the compiled modules
 MOD_PATH = $(F_MASTER_DIR)/driver

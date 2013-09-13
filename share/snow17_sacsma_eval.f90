@@ -68,6 +68,7 @@ subroutine snow17_sacsma_eval(a, obj_val)
 !  print *,'spin up'
   call spin_up_first_year(a,spinup_crit,uztwc,uzfwc,lztwc,lzfsc,lzfpc,adimc)
 !  print *,'done spinup'
+!  print *,uztwc,uzfwc,lztwc,lzfsc,lzfpc,adimc
 
 !set single precision state variables
   uztwc_sp = real(uztwc,kind(sp))
@@ -116,11 +117,13 @@ subroutine snow17_sacsma_eval(a, obj_val)
 
   !now run model
   do i = 1,end_pt
+
   !set single precision inputs
     tair_sp   = real(tair(i),kind(sp))
     precip_sp = real(precip(i),kind(sp))
     pet_sp    = real(pet(i),kind(sp))
-      
+      !precip multiplier
+!	precip_sp = precip_sp*1.9
     CALL EXSNOW19(int(dt),int(dt/sec_hour),day(i),month(i),year(i),&
       !SNOW17 INPUT AND OUTPUT VARIABLES
 			precip_sp,tair_sp,raim_snow17(i),sneqv(i),snow(i),snowh(i),&
@@ -192,23 +195,23 @@ subroutine snow17_sacsma_eval(a, obj_val)
 
   if(a(18) .gt. 0.0) then
     if(trim(metric) .eq. "rmse" .or. trim(metric) .eq. "RMSE") then
-      call calc_rmse(route_tci_dp,streamflow_dp,end_pt,obj_val_tmp)
+      call calc_rmse(route_tci_dp,streamflow_dp,end_pt,valid,obj_val_tmp)
     elseif(trim(metric) .eq. "mse" .or. trim(metric) .eq. "MSE") then
-      call calc_mse(route_tci_dp,streamflow_dp,end_pt,obj_val_tmp)
+      call calc_mse(route_tci_dp,streamflow_dp,end_pt,valid,obj_val_tmp)
     elseif(trim(metric) .eq. "nse" .or. trim(metric) .eq. "NSE") then
-      call calc_nse(route_tci_dp,streamflow_dp,end_pt,obj_val_tmp)
+      call calc_nse(route_tci_dp,streamflow_dp,end_pt,valid,obj_val_tmp)
     elseif(trim(metric) .eq. "kge" .or. trim(metric) .eq. "KGE") then
-      call calc_kge(route_tci_dp,streamflow_dp,end_pt,obj_val_tmp)
+      call calc_kge(route_tci_dp,streamflow_dp,end_pt,valid,obj_val_tmp)
     endif
   else
     if(trim(metric) .eq. "rmse" .or. trim(metric) .eq. "RMSE") then
-      call calc_rmse(tci_dp,streamflow_dp,end_pt,obj_val_tmp)
+      call calc_rmse(tci_dp,streamflow_dp,end_pt,valid,obj_val_tmp)
     elseif(trim(metric) .eq. "mse" .or. trim(metric) .eq. "MSE") then
-      call calc_mse(tci_dp,streamflow_dp,end_pt,obj_val_tmp)
+      call calc_mse(tci_dp,streamflow_dp,end_pt,valid,obj_val_tmp)
     elseif(trim(metric) .eq. "nse" .or. trim(metric) .eq. "NSE") then
-      call calc_nse(tci_dp,streamflow_dp,end_pt,obj_val_tmp)
+      call calc_nse(tci_dp,streamflow_dp,end_pt,valid,obj_val_tmp)
     elseif(trim(metric) .eq. "kge" .or. trim(metric) .eq. "KGE") then
-      call calc_kge(tci_dp,streamflow_dp,end_pt,obj_val_tmp)
+      call calc_kge(tci_dp,streamflow_dp,end_pt,valid,obj_val_tmp)
     endif
   endif
 

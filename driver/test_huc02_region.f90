@@ -107,7 +107,7 @@ program test_upper_colo
 
 !set spin-up criteria
 !may want to not have this hardcoded in the future (AJN 9/9/2013)
-  spinup_crit = 0.1_dp
+  spinup_crit = 1.1_dp
 
 !read namelists
   call read_namelist
@@ -409,24 +409,24 @@ program test_upper_colo
   if(a(18) .gt. 0.0) then
     if(trim(metric) .eq. "rmse" .or. trim(metric) .eq. "RMSE") then
       print *,'rmse'
-      call calc_rmse(route_tci_dp,streamflow_dp,end_pt,obj_val)
+      call calc_rmse(route_tci_dp,streamflow_dp,end_pt,valid,obj_val)
       print *,'rmse done'
     elseif(trim(metric) .eq. "mse" .or. trim(metric) .eq. "MSE") then
-      call calc_mse(route_tci_dp,streamflow_dp,end_pt,obj_val)
+      call calc_mse(route_tci_dp,streamflow_dp,end_pt,valid,obj_val)
     elseif(trim(metric) .eq. "nse" .or. trim(metric) .eq. "NSE") then
-      call calc_nse(route_tci_dp,streamflow_dp,end_pt,obj_val)
+      call calc_nse(route_tci_dp,streamflow_dp,end_pt,valid,obj_val)
     elseif(trim(metric) .eq. "kge" .or. trim(metric) .eq. "KGE") then
-      call calc_kge(route_tci_dp,streamflow_dp,end_pt,obj_val)
+      call calc_kge(route_tci_dp,streamflow_dp,end_pt,valid,obj_val)
     endif
   else
     if(trim(metric) .eq. "rmse" .or. trim(metric) .eq. "RMSE") then
-      call calc_rmse(tci_dp,streamflow_dp,end_pt,obj_val)
+      call calc_rmse(tci_dp,streamflow_dp,end_pt,valid,obj_val)
     elseif(trim(metric) .eq. "mse" .or. trim(metric) .eq. "MSE") then
-      call calc_mse(tci_dp,streamflow_dp,end_pt,obj_val)
+      call calc_mse(tci_dp,streamflow_dp,end_pt,valid,obj_val)
     elseif(trim(metric) .eq. "nse" .or. trim(metric) .eq. "NSE") then
-      call calc_nse(tci_dp,streamflow_dp,end_pt,obj_val)
+      call calc_nse(tci_dp,streamflow_dp,end_pt,valid,obj_val)
     elseif(trim(metric) .eq. "kge" .or. trim(metric) .eq. "KGE") then
-      call calc_kge(tci_dp,streamflow_dp,end_pt,obj_val)
+      call calc_kge(tci_dp,streamflow_dp,end_pt,valid,obj_val)
     endif
   endif
 

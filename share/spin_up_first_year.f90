@@ -111,14 +111,15 @@ subroutine spin_up_first_year(a, spinup_crit, uztwc, uzfwc, lztwc, &
     adimc_prev = real(adimc_sp,kind(dp))
 
 !    print *,'running wy'
-
+!  print *,'before',uztwc_sp,uzfwc_sp,lztwc_sp,lzfsc_sp,lzfpc_sp,adimc_sp
     !run first water year to spin things up
     do i = 1,365
     !set single precision inputs
       tair_sp   = real(tair(i),kind(sp))
       precip_sp = real(precip(i),kind(sp))
       pet_sp    = real(pet(i),kind(sp))
-      
+            !precip multiplier
+!	precip_sp = precip_sp*1.9
 !print *,i,pet(i),precip(i),tair(i)
 
       CALL EXSNOW19(int(dt),int(dt/sec_hour),day(i),month(i),year(i),&
@@ -165,7 +166,7 @@ subroutine spin_up_first_year(a, spinup_crit, uztwc, uzfwc, lztwc, &
     lzfsc = real(lzfsc_sp,kind(dp))
     lzfpc = real(lzfpc_sp,kind(dp))
     adimc = real(adimc_sp,kind(dp))
-
+!print *,'after',uztwc,uzfwc,lztwc,lzfsc,lzfpc,adimc
     !check for convergence
     !the units of all six state variables are mm
 
@@ -201,7 +202,7 @@ subroutine spin_up_first_year(a, spinup_crit, uztwc, uzfwc, lztwc, &
 !	print *,'failed'
     endif
   enddo  !end while loop for spin up
-
+!print *,cnt
 
   return
 end subroutine spin_up_first_year

@@ -128,55 +128,61 @@ module gauge_calib
     end subroutine get_model_state
 
 
-    subroutine calc_rmse(model, obs, length, rmse)
+    subroutine calc_rmse(model, obs, length, valid,rmse)
       use nrtype
 
       real(dp), dimension(36500),     intent(in)  :: model
       real(dp), dimension(36500),     intent(in)  :: obs
       integer(I4B),	intent(in)		:: length
+      logical, dimension(36500), intent(in)	:: valid
 
       real(dp),		  intent(out) :: rmse
     end subroutine calc_rmse
 
 
-    subroutine calc_mse(model,obs,length, mse)
+    subroutine calc_mse(model,obs,length, valid,mse)
       use nrtype
 
       real(dp), dimension(36500),     intent(in)  :: model
       real(dp), dimension(36500),     intent(in)  :: obs
       integer(I4B),	intent(in)		:: length
+      logical, dimension(36500), intent(in)	:: valid
 
       real(dp),		  intent(out) :: mse
     end subroutine calc_mse
 
 
-    subroutine calc_nse(model,obs,length, nse)
+    subroutine calc_nse(model,obs,length, valid,nse)
       use nrtype
 
       real(dp), dimension(36500),     intent(in)  :: model
       real(dp), dimension(36500),     intent(in)  :: obs
       integer(I4B),	intent(in)		:: length
+      logical, dimension(36500), intent(in)	:: valid
+
       real(dp),		  intent(out) :: nse
     end subroutine calc_nse
 
 
-    subroutine calc_kge(model,obs,length, kge)
+    subroutine calc_kge(model,obs,length, valid,kge)
       use nrtype
 
       real(dp), dimension(36500),     intent(in)  :: model
       real(dp), dimension(36500),     intent(in)  :: obs
       integer(I4B),	intent(in)		:: length
+      logical, dimension(36500), intent(in)	:: valid
 
       real(dp),		  intent(out) :: kge
     end subroutine calc_kge
 
 
-    subroutine pearson(model, obs, length,corr)
+    subroutine pearson(model, obs, length,valid,corr)
       use nrtype
 
       real(dp), dimension(36500),intent(in)	:: model
       real(dp), dimension(36500),intent(in)	:: obs
       integer(I4B),	intent(in)			:: length
+      logical, dimension(36500), intent(in)	:: valid
 
       real(dp),intent(out)		:: corr
     end subroutine pearson

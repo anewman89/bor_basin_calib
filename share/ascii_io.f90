@@ -140,6 +140,8 @@ subroutine get_start_points(obs_offset,obs_val_offset,forcing_offset,forcing_val
 !also want to calculate validation length based off of observed record & calibration specifications
   val_length = obs_length - obs_val_offset
 
+  print *,'get_start_pts:',forcing_offset,obs_offset,obs_val_offset,forcing_val_offset,val_length
+
   return
 end subroutine get_start_points
 
@@ -162,6 +164,7 @@ subroutine read_cida_areal_forcing(forcing_offset,forcing_val_offset,val_length)
 
 !local variables
   integer(I4B)				:: i,jday_s,wy_jday,dum_int,i2,end_pt
+  integer(I4B)				:: num_valid
 
   character(len=64), parameter		:: read_format = "(I4.4, 3(1x,I2.2),1x,7(F10.2))"
   character(len = 1024)			:: dum_str
@@ -172,6 +175,7 @@ subroutine read_cida_areal_forcing(forcing_offset,forcing_val_offset,val_length)
 
 !code
   sum_obs = 0.0
+  num_valid = 0
 !read met file
   open (UNIT=50,file=trim(forcing_name),form='formatted',status='old')
 
@@ -187,7 +191,7 @@ subroutine read_cida_areal_forcing(forcing_offset,forcing_val_offset,val_length)
   !observed streamflow varies in its start date by gauge
 
   if(val_period .eq. 0) then
-    print *,forcing_offset,sim_length,forcing_offset+sim_length
+    print *,'in cida',forcing_offset,sim_length,forcing_offset+sim_length
 
     i2 = 0
     do i = 1,(forcing_offset + sim_length)
@@ -216,16 +220,20 @@ subroutine read_cida_areal_forcing(forcing_offset,forcing_val_offset,val_length)
 
       !1 cubic meter per day is 1000 mm per square m -> mm*m^2/day
       streamflow(i) = streamflow(i)*1000./area_basin  !now in mm/day
-      sum_obs = sum_obs + streamflow(i)
+      if(streamflow(i) .ge. 0) then
+	sum_obs = sum_obs + streamflow(i)
+	num_valid = num_valid + 1
+      endif
     enddo
-    mean_obs = sum_obs/real(sim_length)
+!    mean_obs = sum_obs/real(sim_length)
+    mean_obs = sum_obs/real(num_valid,kind(dp))
   !print *,'mean: ',mean_obs
   else
   !validation grab
     print *,forcing_val_offset,val_length,forcing_offset+sim_length+val_length
     i2 = 0
     do i = 1,(forcing_val_offset + val_length)
-      if(i .ge. forcing_val_offset-1) then
+      if(i .ge. forcing_val_offset) then
 	i2 = i2 + 1
 
 	read (UNIT=50,FMT=read_format) year(i2),month(i2),day(i2),hour(i2),&
@@ -249,14 +257,20 @@ subroutine read_cida_areal_forcing(forcing_offset,forcing_val_offset,val_length)
 
       !1 cubic meter per day is 1000 mm per square m
       streamflow(i) = streamflow(i)*1000./area_basin  !now in mm/day
-      sum_obs = sum_obs + streamflow(i)
+      if(streamflow(i) .ge. 0.0) then
+	sum_obs = sum_obs + streamflow(i)
+	num_valid = num_valid + 1
+      endif
     enddo
-    mean_obs = sum_obs/real(val_length)
+!    mean_obs = sum_obs/real(val_length)
+    mean_obs = sum_obs/real(num_valid,kind(dp))
+
   !print *,'mean: ',mean_obs
   endif
   close(UNIT=50)
 
-print *,'cida',year(1),month(1),day(1),precip(1),streamflow(1)
+print *,'cida start',year(1),month(1),day(1),precip(1),streamflow(1),mean_obs
+print *,'cida end',year(i2),month(i2),day(i2),precip(i2),streamflow(i2)
 
   return
 
@@ -267,7 +281,7 @@ end subroutine read_cida_areal_forcing
 subroutine read_streamflow(obs_offset,obs_val_offset,val_length)
   use nrtype
   use snow17_sac, only: stream_name, sim_length, streamflow, val_period, &
-                        area_basin
+                        area_basin,valid
   implicit none
 
 !input variables
@@ -285,6 +299,7 @@ subroutine read_streamflow(obs_offset,obs_val_offset,val_length)
 
 
 !code
+  valid = .false.
 
 ! open streamflow file
   open (UNIT=50,file=stream_name,form='formatted',status='old')
@@ -298,6 +313,11 @@ subroutine read_streamflow(obs_offset,obs_val_offset,val_length)
         i2 = i2 + 1
 
 	read (UNIT=50,FMT=read_format) gauge,yr,mn,dy,streamflow(i2)
+	if(streamflow(i2) .lt. -1.0_dp) then
+	  streamflow(i2) = -999.0_dp
+	else
+	  valid(i2) = .true.
+	endif
 
 	if(i2 .eq. 1) then
 	  print *,'streamflow calib: ',yr,mn,dy,streamflow(i2),i2,area_basin
@@ -308,13 +328,16 @@ subroutine read_streamflow(obs_offset,obs_val_offset,val_length)
 	read (UNIT=50,FMT=read_format) dum_int,dum_int,dum_int,dum_int,dum_real
       endif
     enddo
+    print *,'obs',val_length,i2
+    print *,'obs end',yr,mn,dy,streamflow(i2)
+
   !validation period
   else
   !now if val_period .ne. 0 read rest of file
     i2  = 0
     ios = 0
     do while(ios .ge. 0)
-      if(cnt .ge. obs_val_offset-1) then
+      if(cnt .ge. obs_val_offset) then
 	i2 = i2 + 1
 	read (UNIT=50,FMT=read_format,IOSTAT=ios) gauge,yr,mn,dy,streamflow(i2)
 	if(i2 .le. 1) then
@@ -325,9 +348,10 @@ subroutine read_streamflow(obs_offset,obs_val_offset,val_length)
 	read (UNIT=50,FMT=read_format,IOSTAT=ios) dum_int,dum_int,dum_int,dum_int,dum_real
       endif
     enddo
+    print *,'val',val_length,i2
   endif !end val_period if check
 
-print *,'val',val_length,i2
+
   close(UNIT=50)
 
   return

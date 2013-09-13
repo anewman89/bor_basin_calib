@@ -90,6 +90,7 @@ module snow17_sac
   real(dp), dimension(36500) :: pet,tair
 
 
+  logical, dimension(36500)  :: valid
 
 
 !namelists
