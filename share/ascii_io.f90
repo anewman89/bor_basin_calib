@@ -65,6 +65,7 @@ subroutine get_start_points(obs_offset,obs_val_offset,forcing_offset,forcing_val
   integer(I4B)	:: cnt			!counter variable for reading through observed streamflow record
   integer(I4B)	:: gauge		!gauge id of current line read in
   integer(I4B)	:: yr			!year of current line read in
+  integer(I4B)  :: obs_yr		!year of obs start point for calibration
   integer(I4B)	:: mn			!month of current line read in
   integer(I4B)	:: dy			!day of current line read in
   integer(I4B)	:: jday_obs		!day of year variable
@@ -101,17 +102,20 @@ subroutine get_start_points(obs_offset,obs_val_offset,forcing_offset,forcing_val
     !if we are at the start_month,start_day for calibration, keep the record number
     if(mn .eq. start_month .and. dy .eq. start_day) then
       obs_offset = cnt
+      obs_yr     = yr
       exit
     endif
   enddo
+  close(unit=50)
 !this gets the doy for the user specifed start date in the year that it occurs
 !in the observed record
-  call julianday_scalar(yr,start_month,start_day,jday_obs)
+  call julianday_scalar(obs_yr,start_month,start_day,jday_obs)
 
 
 !now read entire file quick and keep length of file
-  rewind(unit=50)
+  open (UNIT=50,file=stream_name,form='formatted',status='old')
   cnt = 0
+  ios = 0
 
   do while(ios .ge. 0)
     cnt = cnt + 1
@@ -125,7 +129,7 @@ subroutine get_start_points(obs_offset,obs_val_offset,forcing_offset,forcing_val
 !this is the offset in the daymet forcing data to match the start
 !of the streamflow record
 !loop through the years from 1980 to yr-1
-  do i = forcing_year,1,yr-1
+  do i = forcing_year,obs_yr-1,1
     call julianday_scalar(i,12,31,tmp_jday)
     forcing_offset = forcing_offset + tmp_jday
   enddo
@@ -140,7 +144,7 @@ subroutine get_start_points(obs_offset,obs_val_offset,forcing_offset,forcing_val
 !also want to calculate validation length based off of observed record & calibration specifications
   val_length = obs_length - obs_val_offset
 
-  print *,'get_start_pts:',forcing_offset,obs_offset,obs_val_offset,forcing_val_offset,val_length
+  print *,'get_start_pts:',obs_length,forcing_offset,obs_offset,obs_val_offset,forcing_val_offset,val_length
 
   return
 end subroutine get_start_points

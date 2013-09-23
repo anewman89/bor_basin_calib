@@ -133,7 +133,7 @@ endif
 ifeq "$(FC)" "pgf90"
  FLAGS_PROF = -Bstatic -Mbackslash -g -Mchkptr -Mchkstk -Mpgicoff -Minform=inform -Ktrap=divz,inv -Mprof=lines,time
 # FLAGS = -Mfreeform -O3 -Mbackslash -g -Mchkptr -Mchkstk -Mpgicoff -Minform=inform -Ktrap=divz,inv
- FLAGS = -O3 -r8
+ FLAGS = -O3 -r8 -Kieee
  FLAGS2 = -O3 -r8
 endif
 ifeq "$(FC77)" "pgf77"

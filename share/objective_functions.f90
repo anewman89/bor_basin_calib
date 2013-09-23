@@ -199,11 +199,16 @@ subroutine calc_kge(model,obs,length,valid,kge)
   sigma_o = sum((obs-mu_o)**2,valid)
 
   sigma_s = sqrt(mu_s/real(num_valid,kind(dp)))
-  sigma_o = sqrt(mu_s/real(num_valid,kind(dp)))
+  sigma_o = sqrt(mu_o/real(num_valid,kind(dp)))
   alpha = sigma_s/sigma_o
 
   !Compute linear correlation coefficient
   call pearson(model,obs,length,valid,cc)
+
+!  print *,'mu',mu_s,mu_o
+!  print *,'sigma',sigma_s,sigma_o
+!  print *,'ab',alpha,betha
+!  print *,'rho',cc
 
   !inverted sign for minimization
   kge = -( 1.0 - sqrt((cc-1.0)**2 + (alpha-1.0)**2 + (betha-1.0)**2) )
@@ -215,6 +220,13 @@ subroutine pearson(model,obs,length,valid,corr)
   use nrtype
 
   implicit none
+
+  interface
+    logical function isnan(a)
+      use nrtype
+      real(dp),intent(in) :: a
+    end function isnan
+  end interface
 
   !input variables
   real(dp), dimension(36500),intent(in)	:: model
@@ -256,5 +268,27 @@ subroutine pearson(model,obs,length,valid,corr)
 !compute correlation
   corr = cov/(sqrt(model_var)*sqrt(obs_var))
 
+  if(isnan(corr)) then
+    corr = 0.0_dp
+  endif
+
+!  print *,'p',sqrt(model_var),sqrt(obs_var),cov,corr
+
   return
 end subroutine pearson
+
+
+logical function isnan(a)
+  use nrtype
+  implicit none
+
+  real(dp),intent(in) :: a
+
+  if (a.ne.a) then
+    isnan = .true.
+  else
+    isnan = .false.
+  end if
+
+  return
+end 
