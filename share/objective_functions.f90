@@ -28,7 +28,7 @@ subroutine calc_rmse(model,obs,length,valid,rmse)
 
   num_valid = count(valid(1:end_pt))
 
-!print *,'num missing',end_pt-num_valid
+!print *,'num missing',end_pt-num_valid,num_valid
  
   sum_sqr = 0.0_dp
 
@@ -40,8 +40,10 @@ subroutine calc_rmse(model,obs,length,valid,rmse)
 
 !  rmse = sqrt(sum_sqr/(real(end_pt)))
 
-  sum_sqr = sum((model-obs)**2,MASK=valid)
+  sum_sqr = sum((model(1:end_pt)-obs(1:end_pt))**2,MASK=valid)
   rmse = sqrt(sum_sqr/real(num_valid))
+
+!print *,num_valid,sum_sqr,rmse
 
   return
 end subroutine calc_rmse
@@ -88,7 +90,7 @@ subroutine calc_mse(model,obs,length,valid,mse)
 !  mse = sum_sqr/(real(end_pt))
 
 
-  sum_sqr = sum((model-obs)**2,MASK=valid)
+  sum_sqr = sum((model(1:end_pt)-obs(1:end_pt))**2,MASK=valid)
   mse = sum_sqr/real(num_valid)
 
   return
@@ -139,8 +141,8 @@ subroutine calc_nse(model,obs,length,valid,nse)
 !  enddo
 !  nse = -1.0_dp*(1.0 - sum_sqr/sum_obs)  !inverted sign for optimization
 
-  sum_sqr = sum((model-obs)**2,valid)
-  sum_obs = sum((obs-mean_obs)**2,valid)
+  sum_sqr = sum((model(1:end_pt)-obs(1:end_pt))**2,valid)
+  sum_obs = sum((obs(1:end_pt)-mean_obs)**2,valid)
 
   nse = -1.0_dp*(1.0_dp - sum_sqr/sum_obs)
 
@@ -186,8 +188,8 @@ subroutine calc_kge(model,obs,length,valid,kge)
   sigma_s = 0.0_dp
   sigma_o = 0.0_dp
   !We first compute the mean
-  mu_s = sum(model,valid)/real(num_valid,kind(dp))
-  mu_o = sum(obs,valid)/real(num_valid,kind(dp))
+  mu_s = sum(model(1:end_pt),valid)/real(num_valid,kind(dp))
+  mu_o = sum(obs(1:end_pt),valid)/real(num_valid,kind(dp))
   betha = mu_s/mu_o
   !Now we compute the standard deviation
 !  do itime = 1,end_pt
@@ -195,8 +197,8 @@ subroutine calc_kge(model,obs,length,valid,kge)
 !    sigma_o = sigma_o + (obs(itime)-mu_o)**2
 !  enddo
 
-  sigma_s = sum((model-mu_s)**2,valid)
-  sigma_o = sum((obs-mu_o)**2,valid)
+  sigma_s = sum((model(1:end_pt)-mu_s)**2,valid)
+  sigma_o = sum((obs(1:end_pt)-mu_o)**2,valid)
 
   sigma_s = sqrt(mu_s/real(num_valid,kind(dp)))
   sigma_o = sqrt(mu_o/real(num_valid,kind(dp)))
@@ -256,13 +258,13 @@ subroutine pearson(model,obs,length,valid,corr)
   num_valid = count(valid)
 
 !compute means
-  model_mean = sum(model,valid)/real(num_valid,kind(dp))
-  obs_mean   = sum(obs,valid)/real(num_valid,kind(dp))
+  model_mean = sum(model(1:end_pt),valid)/real(num_valid,kind(dp))
+  obs_mean   = sum(obs(1:end_pt),valid)/real(num_valid,kind(dp))
 
 !compute variance,covariance
-  model_var = sum((model - model_mean)**2,valid)
-  obs_var   = sum((obs   - obs_mean)**2,valid)
-  cov       = sum((model - model_mean)*(obs - obs_mean),valid)
+  model_var = sum((model(1:end_pt) - model_mean)**2,valid)
+  obs_var   = sum((obs(1:end_pt)   - obs_mean)**2,valid)
+  cov       = sum((model(1:end_pt) - model_mean)*(obs(1:end_pt) - obs_mean),valid)
 
 
 !compute correlation
