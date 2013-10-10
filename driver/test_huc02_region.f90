@@ -107,7 +107,7 @@ program test_upper_colo
 
 !set spin-up criteria
 !may want to not have this hardcoded in the future (AJN 9/9/2013)
-  spinup_crit = 1.1_dp
+  spinup_crit = 0.1_dp
 
 !read namelists
   call read_namelist
@@ -273,7 +273,7 @@ program test_upper_colo
       a(i-1) = params(loc,i)
 !      print *,params(loc,i)
     enddo
-
+!print *,sid,bid,a
 !place non optimized parameters (from namelist)
     a(21) = nmf(1)
     a(22) = tipm(1)
@@ -310,6 +310,8 @@ program test_upper_colo
                               lzfsc, lzfpc, adimc)
     endif
 
+	print *,uztwc,uzfwc,lztwc, &
+                lzfsc,lzfpc,adimc
 
     !setup a file for model state output quickly...
     pt1=trim(model_out)
@@ -340,6 +342,9 @@ program test_upper_colo
     lzfsc_sp = real(lzfsc,kind(sp))
     lzfpc_sp = real(lzfpc,kind(sp))
     adimc_sp = real(adimc,kind(sp))
+
+print *,'al;sdf',end_pt,count(valid)
+
 
     do i = 1,end_pt,1
     !set single precision inputs
@@ -408,9 +413,7 @@ program test_upper_colo
 
   if(a(18) .gt. 0.0) then
     if(trim(metric) .eq. "rmse" .or. trim(metric) .eq. "RMSE") then
-      print *,'rmse'
       call calc_rmse(route_tci_dp,streamflow_dp,end_pt,valid,obj_val)
-      print *,'rmse done'
     elseif(trim(metric) .eq. "mse" .or. trim(metric) .eq. "MSE") then
       call calc_mse(route_tci_dp,streamflow_dp,end_pt,valid,obj_val)
     elseif(trim(metric) .eq. "nse" .or. trim(metric) .eq. "NSE") then
@@ -432,6 +435,7 @@ program test_upper_colo
 
     print *,'Objective function value: ',obj_val
     print *,'mean obs:',mean_obs
+
 
     !format statement for output
     30 FORMAT(I4.4, 3(1x,I2.2),7(F12.4))

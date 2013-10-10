@@ -138,11 +138,11 @@ subroutine get_start_points(obs_offset,obs_val_offset,forcing_offset,forcing_val
 
 
 !validation period offsets are calibration offset + sim_length
-  obs_val_offset = obs_offset + sim_length
+  obs_val_offset = obs_offset + sim_length - 1
   forcing_val_offset = forcing_offset + sim_length
 
 !also want to calculate validation length based off of observed record & calibration specifications
-  val_length = obs_length - obs_val_offset
+  val_length = obs_length - obs_val_offset - 1
 
   print *,'get_start_pts:',obs_length,forcing_offset,obs_offset,obs_val_offset,forcing_val_offset,val_length
 
@@ -206,7 +206,7 @@ subroutine read_cida_areal_forcing(forcing_offset,forcing_val_offset,val_length)
 				      dayl(i2),precip(i2),swdown(i2),swe(i2),tmax(i2),tmin(i2),vpd(i2)
 
       !need to compute tair too
-	tair(i2) = (tmax(i2)+tmin(i2))/2.0_dp
+	tair(i2) = ((tmax(i2)+tmin(i2))/2.0_dp)
       else
       !read in but don't keep
 	read (UNIT=50,FMT=read_format) dum_int,dum_int,dum_int,dum_int,&
@@ -234,7 +234,7 @@ subroutine read_cida_areal_forcing(forcing_offset,forcing_val_offset,val_length)
   !print *,'mean: ',mean_obs
   else
   !validation grab
-    print *,forcing_val_offset,val_length,forcing_offset+sim_length+val_length
+    !print *,'val forcing grab',forcing_val_offset,val_length,forcing_offset+sim_length+val_length
     i2 = 0
     do i = 1,(forcing_val_offset + val_length)
       if(i .ge. forcing_val_offset) then
@@ -274,7 +274,7 @@ subroutine read_cida_areal_forcing(forcing_offset,forcing_val_offset,val_length)
   close(UNIT=50)
 
 print *,'cida start',year(1),month(1),day(1),precip(1),streamflow(1),mean_obs
-print *,'cida end',year(i2),month(i2),day(i2),precip(i2),streamflow(i2)
+print *,'cida end',i2,year(i2),month(i2),day(i2),precip(i2),streamflow(i2)
 
   return
 
@@ -338,21 +338,29 @@ subroutine read_streamflow(obs_offset,obs_val_offset,val_length)
   !validation period
   else
   !now if val_period .ne. 0 read rest of file
+    cnt = 0
     i2  = 0
     ios = 0
     do while(ios .ge. 0)
       if(cnt .ge. obs_val_offset) then
 	i2 = i2 + 1
 	read (UNIT=50,FMT=read_format,IOSTAT=ios) gauge,yr,mn,dy,streamflow(i2)
-	if(i2 .le. 1) then
-	  print *,'streamflow val: ',yr,mn,dy,streamflow(i2),i2,area_basin
+	if(streamflow(i2) .lt. -1.0_dp) then
+	  streamflow(i2) = -999.0_dp
+	else
+	  valid(i2) = .true.
+	endif
+
+	if(i2 .eq. 1) then
+	  print *,'streamflow val: ',yr,mn,dy,streamflow(i2),i2
 	endif
       else
       !don't keep record if not in correct time window
 	read (UNIT=50,FMT=read_format,IOSTAT=ios) dum_int,dum_int,dum_int,dum_int,dum_real
       endif
+      cnt = cnt + 1
     enddo
-    print *,'val',val_length,i2
+    print *,'val obs end: ',yr,mn,dy,val_length,i2,streamflow(i2-1)
   endif !end val_period if check
 
 
