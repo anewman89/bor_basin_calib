@@ -1,0 +1,69 @@
+&INIT_CONTROL
+init_smois    = 150.0, 100.0, 180.0, 100.0, 125.0, 100.0  !initial soil moisture state for sac-sma
+forcing_name  = "/d2/anewman/daymet_forcing/lump/10/006352000_lump_cida_forcing.txt"
+stream_name  = "/d2/anewman/usgs_streamflow/10/365/006352000_streamflow_1980.txt"
+model_out = "/d1/anewman/sacsnow17/operational_system/hcdn_output/huc_02_regions/10/006352000_model_output.txt"
+opt_name   = "/d1/anewman/sacsnow17/operational_system/hcdn_output/huc_02_regions/10/region_10_opt.txt"
+gage_id       = 006352000
+dt            = 86400
+sim_len       = 5475
+opt           = 1      !opt = 1 runs optimization code
+model         = 3      !not used currently
+start_calib   = 0    
+val_period    = 0      !yes/no flag for validation run
+metric        = "rmse"
+pet_coef      = 1.4,1.26,1.74   !priestly-taylor coefficient for pet calculation (depends on aridity of region 1.26-1.34 for humid grass/forest then up to 1.74 for very dry areas)
+/
+
+&SNOW_17
+scf	=	1.865,	0.1,	5.0
+mfmax	=	1.209,	0.8,	3.0
+mfmin	= 	0.010,	0.01,	0.79
+uadj	=	0.043,	0.01,	0.4
+si	=	2454.498,	1.0	3500.0
+pxtemp	= 	1.144,	-1.0,	3.0
+nmf	=	0.15,	0, 	0.3 	!not optimized
+tipm	=	0.15,	0.01,	1.0 	!not optimized
+mbase	=	0.0,	0.0,	0.3 	!not optimized
+plwhc	=	0.15,	0.0,	0.4 	!not optimized
+daygm	=	0.05,	0.0,	0.01 	!not optimized
+adc	=	0.05,0.15,0.26,0.45,0.5,0.56,0.61,0.65,0.69,0.82,1.0   !not optimized,mountanous adc
+/
+
+&SAC_SMA
+uztwm	=  21.615,     1.0,   800.0
+uzfwm	=  757.617,     1.0,   800.0
+lztwm	=  541.699,     1.0,   800.0
+lzfpm	=  549.209,     1.0,  1000.0
+lzfsm   =  980.741,     1.0,  1000.0
+adimp	=  0.0,     0.0,    0.40	 !not optimized
+uzk	=  0.698,     0.1,    0.70
+lzpk	=  0.001, 0.00001,   0.025
+lzsk	=  0.045,    0.001,    0.25
+zperc	=  74.264,     1.0,   250.0
+rexp	=  2.495,     0.0,     6.0
+pctim	=  0.005,     0.0,     0.6	 !not optimized
+pfree	=  0.388,     0.0,     1.0
+riva	=   0.0		 !not optimized
+side	=   0.0		 !not optimized
+rserv	=   0.3		 !not optimized
+unit_shape 	= 1.527,	1.0,	5.0       !gamma distribution shape parameter 
+unit_scale 	= 2.000,	0.001,	150.0      !scale parameter
+
+/
+
+&SCE
+nopt   	=  20             	 	! number of parameters to be optimized
+maxn   	=  150000         	 	! maximum number of trials before optimization is terminated
+kstop  	=  9              	 	! number of shuffling loops the value must change by PCENTO (MAX=9)
+pcento 	=  0.001          	 	! the percentage
+ngs    	=  48             	 	! number of complexes in the initial population
+npg    	=  41	        	 	! number of points in each complex (=2*NOPT + 1)
+nps    	=  21            	 	! number of points in a sub-complex (=NOPT + 1)
+nspl   	=  41            	 	! number of evolution steps allowed for each complex before shuffling (=2*NOPT + 1)
+mings  	=  12            	 	! minimum number of complexes required (=NGS)
+iniflg 	=  0             	 	! 1 = include initial point in the population
+iprint 	=  1             	 	! 0 = supress printing
+iseed   =  59             		!starting seed for random number generator
+sce_fname = "/d1/anewman/sacsnow17/sceua_output.txt"
+/
