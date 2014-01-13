@@ -45,6 +45,8 @@ subroutine calc_rmse(model,obs,length,valid,rmse)
 
 !print *,num_valid,sum_sqr,rmse
 
+!print *, model(1:10)
+!print *, obs(1:10)
   return
 end subroutine calc_rmse
 

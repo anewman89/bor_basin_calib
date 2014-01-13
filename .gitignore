@@ -17,6 +17,7 @@ bin/
 #not the driver/old or driver/hru
 driver/old
 driver/hru
+driver/hru_const_parm
 
 #no text files in driver or share directory
 driver/*.txt

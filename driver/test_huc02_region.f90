@@ -273,7 +273,7 @@ program test_upper_colo
       a(i-1) = params(loc,i)
 !      print *,params(loc,i)
     enddo
-!print *,sid,bid,a
+print *,sid,bid,a
 !place non optimized parameters (from namelist)
     a(21) = nmf(1)
     a(22) = tipm(1)

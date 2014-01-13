@@ -27,7 +27,7 @@ subroutine calc_pet_pt(a)
   integer(I4B)		:: end_pt
   
   real(DP)               :: albedo	!albedo for pet calculation
-  real(DP)             	 :: apt		!p-t coefficient for aird regions...
+  real(DP)             	 :: apt		!p-t coefficient...
 
   real(DP)               :: l		!latent heat of vaporization (MJ kg-1)
   real(DP)               :: g		!psychrometric constant
