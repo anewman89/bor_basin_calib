@@ -88,8 +88,8 @@ program test_upper_colo
   real(sp),dimension(1000)       :: unit_hydro
 
 !single iteration parameter info
-  integer(I4B)                          :: bid,loc,sid
-  integer(I4B),dimension(1000)            :: basin,seed
+  integer(I4B)                          :: bid,loc,sid,fid
+  integer(I4B),dimension(1000)            :: basin,seed,forcing
   real(dp),   dimension(1000,21)         :: params
 
 !file read location information
@@ -101,10 +101,14 @@ program test_upper_colo
 
   real(dp)			:: spinup_crit   !criteria for spin-up convergence
 
+
+   integer(I4B)			:: ens_flag
+
 !
 !   code starts below
 !
 
+  ens_flag = 1
 !set spin-up criteria
 !may want to not have this hardcoded in the future (AJN 9/9/2013)
   spinup_crit = 0.1_dp
@@ -246,34 +250,58 @@ program test_upper_colo
     !read(model_out(38:39),'(i2)') sid
     sid = iseed
 
+    if(ens_flag .ne. 0) then
+    !which forcing are we on
+!/d2/anewman/ens_forcing/lump/14/no_elev_trange/009081600_lump_ensm_forcing_leap_001.txt
+!/d2/anewman/ens_forcing/lump/14/elev_trange/009081600_lump_ensm_forcing_leap_001
+!  print *,forcing_name
+      read(forcing_name(81:83),'(i3)') fid
+    endif
+
     print *,trim(opt_name)
 
 !read in region_%02d_opt file
     open(unit=99,file=opt_name,form='formatted')
     read(99,*) num_basin
-    do i = 1,num_basin
-      read(99,*) basin(i), seed(i)
-      read(99,FMT='(21(F8.3))') params(i,:)
+    if(ens_flag .eq. 0) then
+      do i = 1,num_basin
+	read(99,*) basin(i), seed(i)
+	read(99,FMT='(21(F8.3))') params(i,:)
 !print *,basin(i),seed(i)
-    enddo
-
+      enddo
+    else
+      do i = 1,num_basin
+	read(99,*) basin(i), forcing(i), seed(i)
+	read(99,FMT='(21(F8.3))') params(i,:)
+!print *,basin(i),seed(i)
+      enddo
+    endif
 
 !find a match to the basin and seed we are currently processing
-    do i = 1,num_basin
-      if(bid .eq. basin(i) .and. sid .eq. seed(i)) then
-	loc = i
-!print *,loc,num_basin,basin(i)
-      endif
-!print *,basin(i),sid,num_basin,bid
-    enddo
-
+    if(ens_flag .eq. 0) then
+      do i = 1,num_basin
+	if(bid .eq. basin(i) .and. sid .eq. seed(i)) then
+	  loc = i
+  !print *,loc,num_basin,basin(i)
+	endif
+  !print *,basin(i),sid,num_basin,bid
+      enddo
+    else
+      do i = 1,num_basin
+	if(bid .eq. basin(i) .and. sid .eq. seed(i) .and. fid .eq. forcing(i)) then
+	  loc = i
+  !print *,loc,num_basin,basin(i)
+	endif
+  !print *,basin(i),sid,num_basin,bid
+      enddo
+    endif
 
 !place optimized parameters in to parameter arrays
     do i = 2,21
       a(i-1) = params(loc,i)
 !      print *,params(loc,i)
     enddo
-print *,sid,bid,a
+print *,sid,bid,fid,a
 !place non optimized parameters (from namelist)
     a(21) = nmf(1)
     a(22) = tipm(1)

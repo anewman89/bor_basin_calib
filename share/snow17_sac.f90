@@ -19,6 +19,7 @@ module snow17_sac
   integer(I4B) 			:: gage_id		!usgs gage id 
   integer(I4B)			:: start_month		!starting month for calibration period
   integer(I4B)			:: start_day		!starting day for calibration period
+!  integer(I4B)			:: ens_flag		!flag to check if running ensembles
 
 
 !these are not in the namelist block
