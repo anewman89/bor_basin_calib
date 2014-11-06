@@ -44,9 +44,10 @@ end subroutine get_model_state
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
-subroutine get_start_points(obs_offset,obs_val_offset,forcing_offset,forcing_val_offset,val_length)
+subroutine get_start_points(obs_offset,obs_val_offset,forcing_offset, &
+                            forcing_val_offset,val_length)
   use nrtype
-  use snow17_sac, only: stream_name, start_month, start_day, sim_length
+  use snow17_sac, only: stream_name, forcing_name,start_month, start_day, sim_length
   use gauge_calib, only: julianday_scalar
 
   implicit none
@@ -61,6 +62,9 @@ subroutine get_start_points(obs_offset,obs_val_offset,forcing_offset,forcing_val
 !local variables
 !this subroutine assumes streamflow is daily data of the following format:
   character(len=64), parameter :: read_format = "(I8.8,1x,I4.4, 2(1x,I2.2),1x,1(F8.2))"
+  character(len=64), parameter :: read_force = "(I4.4, 3(1x,I2.2),1x,7(F10.2))"
+
+  character(len=5000)     :: dum_str
 
   integer(I4B)	:: cnt			!counter variable for reading through observed streamflow record
   integer(I4B)	:: gauge		!gauge id of current line read in
@@ -74,6 +78,8 @@ subroutine get_start_points(obs_offset,obs_val_offset,forcing_offset,forcing_val
   integer(I4B)	:: forcing_year		!year that forcing data record starts
   integer(I4B)	:: dum_int
   integer(I4B)	:: obs_length		!length of entire observed record
+  integer(I4B)  :: force_length		!length of entire forcing record
+
   integer(I4B)  :: ios			!end of file integer
 
   real(dp)	:: dum_real		!place holder real value
@@ -85,8 +91,11 @@ subroutine get_start_points(obs_offset,obs_val_offset,forcing_offset,forcing_val
   forcing_offset = 0
   forcing_val_offset = 0
 
+!
   forcing_year = 1980
 
+! for klemes
+!  forcing_year = 1995
 
 !open streamflow file
   open (UNIT=50,file=stream_name,form='formatted',status='old')
@@ -99,6 +108,7 @@ subroutine get_start_points(obs_offset,obs_val_offset,forcing_offset,forcing_val
   do
     read (UNIT=50,FMT=read_format) gauge,yr,mn,dy,dum_real
     cnt = cnt + 1
+
     !if we are at the start_month,start_day for calibration, keep the record number
     if(mn .eq. start_month .and. dy .eq. start_day) then
       obs_offset = cnt
@@ -125,24 +135,49 @@ subroutine get_start_points(obs_offset,obs_val_offset,forcing_offset,forcing_val
 
   close(unit=50)
 
-!calculate how many days that is from jan 1 1980 
-!this is the offset in the daymet forcing data to match the start
-!of the streamflow record
-!loop through the years from 1980 to yr-1
+  open (UNIT=50,file=forcing_name,form='formatted',status='old')
+  cnt = 0
+  ios = 0
+  read (UNIT=50,FMT='(F7.2)') dum_real
+  read (UNIT=50,FMT='(F7.2)') dum_real
+  read (UNIT=50,FMT='(F11.0)') dum_real
+  read (UNIT=50,FMT='(94A)') dum_str
+  do while(ios .ge. 0)
+    cnt = cnt + 1
+    read (UNIT=50,FMT=read_format,IOSTAT=ios) dum_int,dum_int,dum_int,dum_int,dum_real, &
+                                  dum_real,dum_real,dum_real,dum_real,dum_real,dum_real
+  enddo
+  force_length = cnt
+
+  close(unit=50)
+
+!!calculate how many days that is from jan 1 1980 
+!!this is the offset in the daymet forcing data to match the start
+!!of the streamflow record
+!!loop through the years from 1980 to yr-1
   do i = forcing_year,obs_yr-1,1
     call julianday_scalar(i,12,31,tmp_jday)
     forcing_offset = forcing_offset + tmp_jday
   enddo
 !add partial year 
   forcing_offset = forcing_offset + jday_obs
-
+  
+!for klemes
+!  forcing_offset = obs_offset
 
 !validation period offsets are calibration offset + sim_length
-  obs_val_offset = obs_offset + sim_length - 1
-  forcing_val_offset = forcing_offset + sim_length
+  obs_val_offset = obs_offset + sim_length
+  forcing_val_offset = forcing_offset + sim_length+1
 
 !also want to calculate validation length based off of observed record & calibration specifications
-  val_length = obs_length - obs_val_offset - 1
+  if(obs_length .gt. force_length) then
+    val_length = obs_length - obs_val_offset - 1
+  else
+    val_length = force_length - obs_val_offset - 1
+  endif
+!  print *,'VALIDATION LENGTH: ',val_length
+!for maurer
+!  val_length = force_length-forcing_val_offset
 
   print *,'get_start_pts:',obs_length,forcing_offset,obs_offset,obs_val_offset,forcing_val_offset,val_length
 
@@ -168,25 +203,50 @@ subroutine read_cida_areal_forcing(forcing_offset,forcing_val_offset,val_length)
 
 !local variables
   integer(I4B)				:: i,jday_s,wy_jday,dum_int,i2,end_pt
-  integer(I4B)				:: num_valid
+  integer(I4B)				:: num_valid,cnt,ios,force_length,val_length_cor
 
   character(len=64), parameter		:: read_format = "(I4.4, 3(1x,I2.2),1x,7(F10.2))"
   character(len = 1024)			:: dum_str
   real(DP),dimension(36500)		:: swe
   real(DP)				:: dum_real
   real(DP)				:: sum_obs
-
+  
 
 !code
   sum_obs = 0.0
   num_valid = 0
+
+
+!read met file once to get length
+  open (UNIT=50,file=forcing_name,form='formatted',status='old')
+  cnt = 0
+  ios = 0
+  read (UNIT=50,FMT='(F7.2)') dum_real
+  read (UNIT=50,FMT='(F7.2)') dum_real
+  read (UNIT=50,FMT='(F11.0)') dum_real
+  read (UNIT=50,FMT='(94A)') dum_str
+  do while(ios .ge. 0)
+    cnt = cnt + 1
+    read (UNIT=50,FMT=read_format,IOSTAT=ios) dum_int,dum_int,dum_int,dum_int,dum_real, &
+                                  dum_real,dum_real,dum_real,dum_real,dum_real,dum_real
+  enddo
+  force_length = cnt-1
+
+  close(unit=50)
+
+
+
 !read met file
   open (UNIT=50,file=trim(forcing_name),form='formatted',status='old')
 
   read (UNIT=50,FMT='(F7.2)') lat
   read (UNIT=50,FMT='(F7.2)') elev
-  read (UNIT=50,FMT='(F10.0)') area_basin
-  read (UNIT=50,FMT='(63A)') dum_str
+!  read (UNIT=50,FMT='(F10.0)') area_basin
+  read (UNIT=50,FMT='(F11.0)') area_basin
+  read (UNIT=50,FMT='(94A)') dum_str
+!  read (UNIT=50,*) dum_str
+
+  print *,'basin area:',area_basin
   !read the rest of the input file
   !forcing_offset is the first day of the first complete water year in corresponding observed streamflow
   !this is the point at which we want to keep the forcing data
@@ -202,14 +262,18 @@ subroutine read_cida_areal_forcing(forcing_offset,forcing_val_offset,val_length)
       !if we are at or past the forcing offset date, keep data
       if(i .ge. forcing_offset) then
  	i2 = i2 + 1
-	read (UNIT=50,FMT=read_format) year(i2),month(i2),day(i2),hour(i2),&
+!	read (UNIT=50,FMT=read_format) year(i2),month(i2),day(i2),hour(i2),&
+!				      dayl(i2),precip(i2),swdown(i2),swe(i2),tmax(i2),tmin(i2),vpd(i2)
+	read (UNIT=50,FMT=*) year(i2),month(i2),day(i2),hour(i2),&
 				      dayl(i2),precip(i2),swdown(i2),swe(i2),tmax(i2),tmin(i2),vpd(i2)
 
       !need to compute tair too
 	tair(i2) = ((tmax(i2)+tmin(i2))/2.0_dp)
       else
       !read in but don't keep
-	read (UNIT=50,FMT=read_format) dum_int,dum_int,dum_int,dum_int,&
+!	read (UNIT=50,FMT=read_format) dum_int,dum_int,dum_int,dum_int,&
+!				       dum_real,dum_real,dum_real,dum_real,dum_real,dum_real,dum_real
+	read (UNIT=50,FMT=*) dum_int,dum_int,dum_int,dum_int,&
 				       dum_real,dum_real,dum_real,dum_real,dum_real,dum_real,dum_real
       endif
     enddo
@@ -236,23 +300,29 @@ subroutine read_cida_areal_forcing(forcing_offset,forcing_val_offset,val_length)
   !validation grab
     !print *,'val forcing grab',forcing_val_offset,val_length,forcing_offset+sim_length+val_length
     i2 = 0
-    do i = 1,(forcing_val_offset + val_length)
+    val_length_cor = force_length-forcing_val_offset
+    print *,'force len: ',force_length,val_length_cor
+    do i = 1,(force_length)
       if(i .ge. forcing_val_offset) then
 	i2 = i2 + 1
 
-	read (UNIT=50,FMT=read_format) year(i2),month(i2),day(i2),hour(i2),&
+!	read (UNIT=50,FMT=read_format) year(i2),month(i2),day(i2),hour(i2),&
+!				      dayl(i2),precip(i2),swdown(i2),swe(i2),tmax(i2),tmin(i2),vpd(i2)
+	read (UNIT=50,FMT=*) year(i2),month(i2),day(i2),hour(i2),&
 				      dayl(i2),precip(i2),swdown(i2),swe(i2),tmax(i2),tmin(i2),vpd(i2)
   !print *,i
       !need to compute tair too
 	tair(i2) = (tmax(i2)+tmin(i2))/2.0_dp
       else
-	read (UNIT=50,FMT=read_format) dum_int,dum_int,dum_int,dum_int,&
+!	read (UNIT=50,FMT=read_format) dum_int,dum_int,dum_int,dum_int,&
+!				    dum_real,dum_real,dum_real,dum_real,dum_real,dum_real,dum_real
+	read (UNIT=50,FMT=*) dum_int,dum_int,dum_int,dum_int,&
 				    dum_real,dum_real,dum_real,dum_real,dum_real,dum_real,dum_real
       endif
     enddo
 !print *,'cida',year(1),month(1),day(1),precip(1),streamflow(1)
   !need to convert streamflow to mm/day
-    do i = 1,val_length
+    do i = 1,val_length_cor+1
       !convert streamflow (cfs) to cms
       streamflow(i) = streamflow(i)*cfs_cms  !now in cubic meters per second
 

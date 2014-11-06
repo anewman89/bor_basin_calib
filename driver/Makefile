@@ -115,7 +115,7 @@ calib_DRIVER= \
 DRIVER = $(patsubst %, $(DRIVER_DIR)/%, $(calib_DRIVER))
 
 # Define the executable
-DRIVER__EX = gage_calib_test_ens.exe
+DRIVER__EX = gage_calib_case_study.exe
 
 
 #========================================================================

@@ -108,7 +108,7 @@ program test_upper_colo
 !   code starts below
 !
 
-  ens_flag = 1
+  ens_flag = 0
 !set spin-up criteria
 !may want to not have this hardcoded in the future (AJN 9/9/2013)
   spinup_crit = 0.1_dp
@@ -207,7 +207,8 @@ program test_upper_colo
 
 
 !first, find the proper time ranges for the gauge being worked with
-  call get_start_points(obs_offset,obs_val_offset,forcing_offset,forcing_val_offset,val_length)
+  call get_start_points(obs_offset,obs_val_offset,forcing_offset,&
+                        forcing_val_offset,val_length)
 
 !read in verification streamflow data
 !this determines the starting point for the calibration based on observed record...
@@ -301,7 +302,7 @@ program test_upper_colo
       a(i-1) = params(loc,i)
 !      print *,params(loc,i)
     enddo
-print *,sid,bid,fid,a
+!print *,sid,bid,fid,a
 !place non optimized parameters (from namelist)
     a(21) = nmf(1)
     a(22) = tipm(1)
@@ -320,26 +321,38 @@ print *,sid,bid,fid,a
 
     call calc_pet_pt(a)
 
+  !if statemetn to check validation/calibration flag
     if(val_period .ne. 0) then
-	call get_model_state(cal_uztwc, cal_uzfwc, cal_lztwc, &
-                             cal_lzfsc, cal_lzfpc, cal_adimc)
+!	call get_model_state(cal_uztwc, cal_uzfwc, cal_lztwc, &
+!                             cal_lzfsc, cal_lzfpc, cal_adimc)
+!
+!	uztwc = cal_uztwc
+!	uzfwc = cal_uzfwc
+!	lztwc = cal_lztwc
+!	lzfsc = cal_lzfsc
+!	lzfpc = cal_lzfpc
+!	adimc = cal_adimc
+!
+!	print *,cal_uztwc, cal_uzfwc, cal_lztwc, &
+!                             cal_lzfsc, cal_lzfpc, cal_adimc
 
-	uztwc = cal_uztwc
-	uzfwc = cal_uzfwc
-	lztwc = cal_lztwc
-	lzfsc = cal_lzfsc
-	lzfpc = cal_lzfpc
-	adimc = cal_adimc
+  !instead of grabbing the state at the end of the calibration run
+  !which is kind of cheating.. spin up the validation period using the same method as the calibration period
+  !then run the validation period using the optimal parameter set
 
-	print *,cal_uztwc, cal_uzfwc, cal_lztwc, &
-                             cal_lzfsc, cal_lzfpc, cal_adimc
+      call spin_up_first_year(a, spinup_crit, uztwc, uzfwc, lztwc, &
+                              lzfsc, lzfpc, adimc)
+
     else
+
+  !spin up calibration period using optimal parameter set
       call spin_up_first_year(a, spinup_crit, uztwc, uzfwc, lztwc, &
                               lzfsc, lzfpc, adimc)
     endif
 
-	print *,uztwc,uzfwc,lztwc, &
-                lzfsc,lzfpc,adimc
+
+    print *,uztwc,uzfwc,lztwc, &
+            lzfsc,lzfpc,adimc
 
     !setup a file for model state output quickly...
     pt1=trim(model_out)
@@ -371,7 +384,7 @@ print *,sid,bid,fid,a
     lzfpc_sp = real(lzfpc,kind(sp))
     adimc_sp = real(adimc,kind(sp))
 
-print *,'al;sdf',end_pt,count(valid)
+!print *,'al;sdf',end_pt,count(valid)
 
 
     do i = 1,end_pt,1
@@ -463,7 +476,7 @@ print *,'al;sdf',end_pt,count(valid)
 
     print *,'Objective function value: ',obj_val
     print *,'mean obs:',mean_obs
-
+    print *,'simulation length:',end_pt
 
     !format statement for output
     30 FORMAT(I4.4, 3(1x,I2.2),7(F12.4))
