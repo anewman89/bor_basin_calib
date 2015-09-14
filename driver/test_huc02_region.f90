@@ -262,13 +262,13 @@ program test_upper_colo
     print *,trim(opt_name)
 
 !read in region_%02d_opt file
-    open(unit=99,file=opt_name,form='formatted')
+    open(unit=99,file=trim(opt_name),form='formatted')
     read(99,*) num_basin
     if(ens_flag .eq. 0) then
       do i = 1,num_basin
 	read(99,*) basin(i), seed(i)
 	read(99,FMT='(21(F8.3))') params(i,:)
-!print *,basin(i),seed(i)
+!print *,basin(i),seed(i),num_basin,i
       enddo
     else
       do i = 1,num_basin

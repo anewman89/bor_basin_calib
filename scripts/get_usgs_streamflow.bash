@@ -12,9 +12,10 @@
 
 #specify time interval
 #both need to be YYYYMMDD
-start_date=19800101
-end_date=20101231
-
+#start_date=19800101
+#end_date=20101231
+start_date=20110101
+end_date=20141231
 
 #for individul values, use: 1 2 3 4
 #user needs to enter list of gauge ids after 'for gauge in'

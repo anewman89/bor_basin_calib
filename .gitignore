@@ -11,8 +11,16 @@
 #no text editor temp files
 *~
 
+#no zip files
+*.gz
+*.tgz
+*.tar
+
 #not the bin directory
 bin/
+
+#
+Users/
 
 #not the driver/old or driver/hru
 driver/old

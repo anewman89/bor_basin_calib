@@ -143,9 +143,10 @@ subroutine get_start_points(obs_offset,obs_val_offset,forcing_offset, &
   read (UNIT=50,FMT='(F11.0)') dum_real
   read (UNIT=50,FMT='(94A)') dum_str
   do while(ios .ge. 0)
-    cnt = cnt + 1
+
     read (UNIT=50,FMT=read_format,IOSTAT=ios) dum_int,dum_int,dum_int,dum_int,dum_real, &
                                   dum_real,dum_real,dum_real,dum_real,dum_real,dum_real
+    cnt = cnt + 1  
   enddo
   force_length = cnt
 
@@ -171,15 +172,16 @@ subroutine get_start_points(obs_offset,obs_val_offset,forcing_offset, &
 
 !also want to calculate validation length based off of observed record & calibration specifications
   if(obs_length .gt. force_length) then
-    val_length = obs_length - obs_val_offset - 1
-  else
     val_length = force_length - obs_val_offset - 1
+  else
+    val_length = obs_length - obs_val_offset - 1
   endif
+  val_length = force_length-forcing_val_offset
 !  print *,'VALIDATION LENGTH: ',val_length
 !for maurer
 !  val_length = force_length-forcing_val_offset
 
-  print *,'get_start_pts:',obs_length,forcing_offset,obs_offset,obs_val_offset,forcing_val_offset,val_length
+  print *,'get_start_pts:',obs_length,force_length,forcing_offset,obs_offset,obs_val_offset,forcing_val_offset,val_length
 
   return
 end subroutine get_start_points
