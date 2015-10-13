@@ -168,7 +168,7 @@ subroutine get_start_points(obs_offset,obs_val_offset,forcing_offset, &
 
 !validation period offsets are calibration offset + sim_length
   obs_val_offset = obs_offset + sim_length
-  forcing_val_offset = forcing_offset + sim_length+1
+  forcing_val_offset = forcing_offset + sim_length-1
 
 !also want to calculate validation length based off of observed record & calibration specifications
   if(obs_length .gt. force_length) then
