@@ -12,6 +12,7 @@ module snow17_sac
   character(len = 1024) 	:: metric		!name of metric for objective function
   character(len = 1024) 	:: model_out		!base name for output files
   character(len = 1024) 	:: opt_name		!optimal parameter file name
+  character(len = 1024)		:: spin_type
   real(sp), dimension(6)     	:: init_smois		!initial soil moisture states for sac
   real(sp), dimension(3)     	:: pet_coef		!coefficient for p-t pet calculation
   integer(I4B) 			:: opt			!flag for running sce or not
@@ -19,15 +20,13 @@ module snow17_sac
   integer(I4B) 			:: gage_id		!usgs gage id 
   integer(I4B)			:: start_month		!starting month for calibration period
   integer(I4B)			:: start_day		!starting day for calibration period
-!  integer(I4B)			:: ens_flag		!flag to check if running ensembles
-
-
-!these are not in the namelist block
-!  integer(I4B) 			:: val_length		!length of validation period
-								!remove from this module.  now passed through functions
-
-!  integer(I4B) 			:: val_length		!remove this variable (AJN 9/9/2013)
-!  integer(I4B) 			:: model		!unused (check this for sure, AJN 9/9/2013)
+  integer(I4B)			:: start_yr
+  integer(I4B)			:: end_yr
+  integer(I4B)			:: end_month
+  integer(I4B)			:: end_day
+  integer(I4B)			:: stream_month		!starting month for calibration period
+  integer(I4B)			:: stream_day		!starting day for calibration period
+  integer(I4B)			:: stream_yr
 
 
 !variables for snow17,pet,streamflow calculations
@@ -122,7 +121,10 @@ module snow17_sac
 !                            val_period,pet_coef,gage_id,opt_name
 
   namelist / INIT_CONTROL / dt,sim_length,init_smois,forcing_name,opt, &
-                            stream_name,metric,model_out,start_day,start_month, &
-                            val_period,pet_coef,gage_id,opt_name
+                            stream_name,metric,model_out, &
+                            val_period,pet_coef,gage_id,opt_name, &
+                            start_yr,start_day,start_month, &
+                            end_yr,end_month,end_day,spin_type,stream_yr, &
+			    stream_month,stream_day
   save
 end module

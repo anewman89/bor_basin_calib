@@ -18,7 +18,7 @@ program test_upper_colo
   integer(I4B) :: error,isce,num_basin
 
   integer(I4B) :: end_pt	!length of simulation
-
+  integer(I4B) :: spin_len
   !integer :: opt
 
   real(dp) :: obj_val	!return value from objective function
@@ -97,7 +97,7 @@ program test_upper_colo
   integer(I4B)			:: obs_val_offset
   integer(I4B)			:: forcing_offset
   integer(I4B)			:: forcing_val_offset
-  integer(I4B)			:: val_length
+  integer(I4B)			:: val_length,stream_pos
 
   real(dp)			:: spinup_crit   !criteria for spin-up convergence
 
@@ -207,15 +207,27 @@ program test_upper_colo
 
 
 !first, find the proper time ranges for the gauge being worked with
-  call get_start_points(obs_offset,obs_val_offset,forcing_offset,&
-                        forcing_val_offset,val_length)
+!  call get_start_points(obs_offset,obs_val_offset,forcing_offset,&
+!                        forcing_val_offset,val_length)
+
+!get forcing data
+  call read_cida_areal_forcing()
+
+!find position that matches stream_date
+  stream_pos = 1
+  do i = 1,sim_length
+    if(year(i) .eq. stream_yr .and. month(i) .eq. stream_month .and. day(i) .eq. stream_day) then
+      stream_pos = i
+      exit
+    end if
+  enddo
+
+  print *,'stream_pos: ',stream_pos
 
 !read in verification streamflow data
 !this determines the starting point for the calibration based on observed record...
-  call read_streamflow(obs_offset,obs_val_offset,val_length)
+  call read_streamflow(stream_pos)
 
-!get forcing data
-  call read_cida_areal_forcing(forcing_offset,forcing_val_offset,val_length)
 
 
 !setup parameter, upper & lower bound arrays
@@ -238,7 +250,8 @@ program test_upper_colo
     if(val_period .eq. 0)then
       end_pt = sim_length
     else
-      end_pt = val_length
+!      end_pt = val_length
+      end_pt = sim_length
     endif
 
     !setup a few parameters quick
@@ -340,19 +353,22 @@ program test_upper_colo
   !which is kind of cheating.. spin up the validation period using the same method as the calibration period
   !then run the validation period using the optimal parameter set
 
-      call spin_up_first_year(a, spinup_crit, uztwc, uzfwc, lztwc, &
-                              lzfsc, lzfpc, adimc)
-
+      if(trim(spin_type) .eq. "first_year_repeat") then
+	call spin_up_first_year(a, spinup_crit, uztwc, uzfwc, lztwc, &
+				lzfsc, lzfpc, adimc)
+      end if
     else
 
   !spin up calibration period using optimal parameter set
-      call spin_up_first_year(a, spinup_crit, uztwc, uzfwc, lztwc, &
-                              lzfsc, lzfpc, adimc)
+      if(trim(spin_type) .eq. "first_year_repeat") then
+	call spin_up_first_year(a, spinup_crit, uztwc, uzfwc, lztwc, &
+				lzfsc, lzfpc, adimc)
+      end if
     endif
 
 
-    print *,uztwc,uzfwc,lztwc, &
-            lzfsc,lzfpc,adimc
+!    print *,uztwc,uzfwc,lztwc, &
+!            lzfsc,lzfpc,adimc
 
     !setup a file for model state output quickly...
     pt1=trim(model_out)
@@ -377,22 +393,43 @@ program test_upper_colo
     eta = 0.0
 
 !set single precision sac state variables
-    uztwc_sp = real(uztwc,kind(sp))
-    uzfwc_sp = real(uzfwc,kind(sp))
-    lztwc_sp = real(lztwc,kind(sp))
-    lzfsc_sp = real(lzfsc,kind(sp))
-    lzfpc_sp = real(lzfpc,kind(sp))
-    adimc_sp = real(adimc,kind(sp))
+    if(trim(spin_type) .eq. "first_year_repeat") then
+      uztwc_sp = real(uztwc,kind(sp))
+      uzfwc_sp = real(uzfwc,kind(sp))
+      lztwc_sp = real(lztwc,kind(sp))
+      lzfsc_sp = real(lzfsc,kind(sp))
+      lzfpc_sp = real(lzfpc,kind(sp))
+      adimc_sp = real(adimc,kind(sp))
+    else if(trim(spin_type) .eq. "first_ten_years") then
+	!just set the valid flag for the first ten years to false for objective function
+	!calculation
+	valid = .true.
+	if(val_period .eq. 0) then
+	  spin_len = floor(365.25*10.0)
+	else
+	  spin_len = floor(365.25*10.0)-91
+	end if
+	do i = 1,spin_len
+	  valid(i) = .false.
+	end do
+	uztwc_sp = init_smois(1)
+	uzfwc_sp = init_smois(2)
+	lztwc_sp = init_smois(3)
+	lzfsc_sp = init_smois(4)
+	lzfpc_sp = init_smois(5)
+	adimc_sp = init_smois(6)
+      end if
 
 !print *,'al;sdf',end_pt,count(valid)
 
 
-    do i = 1,end_pt,1
+    do i = 1,end_pt+1,1
     !set single precision inputs
       tair_sp   = real(tair(i),kind(sp))
       precip_sp = real(precip(i),kind(sp))
       pet_sp    = real(pet(i),kind(sp))
-
+!print *,tair_sp,precip_sp,pet_sp
+!print *,uztwc_sp,uzfwc_sp,lztwc_sp,lzfsc_sp,lzfpc_sp,adimc_sp
 	CALL EXSNOW19(int(dt),int(dt/sec_hour),day(i),month(i),year(i),&
 	  !SNOW17 INPUT AND OUTPUT VARIABLES
 			    precip_sp,tair_sp,raim_snow17(i),sneqv(i),snow(i),snowh(i),&
@@ -492,13 +529,25 @@ program test_upper_colo
     endif
 
     !output to a file
-    do i = 1,end_pt
+    do i = 1,end_pt-1
       if(a(18) .gt. 0) then
 !	write(unit=45,30) year(i),month(i),day(i),hour(i),sneqv(i)*1000.,precip(i),raim_snow17(i),pet(i),tair(i),(route_tci(i)+qg(i)),streamflow(i)
-	write(unit=45,30) year(i),month(i),day(i),hour(i),sneqv(i)*1000.,precip(i),raim_snow17(i),pet(i),tair(i),route_tci(i),streamflow(i)
+	if(trim(spin_type) .eq. "first_year_repeat") then
+	    write(unit=45,30) year(i),month(i),day(i),hour(i),sneqv(i)*1000.,precip(i),raim_snow17(i),pet(i),tair(i),route_tci(i),streamflow(i)
+	else if(trim(spin_type) .eq. "first_ten_years") then
+	  if(valid(i)) then
+	    write(unit=45,30) year(i),month(i),day(i),hour(i),sneqv(i)*1000.,precip(i),raim_snow17(i),pet(i),tair(i),route_tci(i),streamflow(i)
+	  end if
+	end if
       else
 !	write(unit=45,30) year(i),month(i),day(i),hour(i),sneqv(i)*1000.,precip(i),raim_snow17(i),pet(i),tair(i),(tci(i)+qg(i)),streamflow(i)
-	write(unit=45,30) year(i),month(i),day(i),hour(i),sneqv(i)*1000.,precip(i),raim_snow17(i),pet(i),tair(i),tci(i),streamflow(i)
+	if(trim(spin_type) .eq. "first_year_repeat") then
+	  write(unit=45,30) year(i),month(i),day(i),hour(i),sneqv(i)*1000.,precip(i),raim_snow17(i),pet(i),tair(i),tci(i),streamflow(i)
+	else if(trim(spin_type) .eq. "first_ten_years") then
+	  if(valid(i)) then
+	    write(unit=45,30) year(i),month(i),day(i),hour(i),sneqv(i)*1000.,precip(i),raim_snow17(i),pet(i),tair(i),tci(i),streamflow(i)
+	  end if
+	end if
       endif
     enddo
     close(unit=45)

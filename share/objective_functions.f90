@@ -44,7 +44,7 @@ subroutine calc_rmse(model,obs,length,valid,rmse)
   rmse = sqrt(sum_sqr/real(num_valid))
 
 
-!print *,num_valid,sum_sqr,rmse
+!print *,'RMSE:',num_valid,sum_sqr,rmse
 !print*,end_pt
 !print *, model(1:10)
 !print *, obs(1:10)

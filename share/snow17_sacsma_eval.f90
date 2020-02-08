@@ -66,21 +66,37 @@ subroutine snow17_sacsma_eval(a, obj_val)
   spinup_crit = 0.1_dp
 
 !  print *,'spin up'
-  call spin_up_first_year(a,spinup_crit,uztwc,uzfwc,lztwc,lzfsc,lzfpc,adimc)
+  if(trim(spin_type) .eq. "first_year_repeat") then
+    call spin_up_first_year(a,spinup_crit,uztwc,uzfwc,lztwc,lzfsc,lzfpc,adimc)
+  !set single precision state variables
+    uztwc_sp = real(uztwc,kind(sp))
+    uzfwc_sp = real(uzfwc,kind(sp))
+    lztwc_sp = real(lztwc,kind(sp))
+    lzfsc_sp = real(lzfsc,kind(sp))
+    lzfpc_sp = real(lzfpc,kind(sp))
+    adimc_sp = real(adimc,kind(sp))
+  !reset snow-17 carryover variables
+    tprev = 0.0
+    cs = 0.0
+
+    sim_length = floor(15*365.25)
+
+  else if(trim(spin_type) .eq. "first_ten_years") then
+    !just set the valid flag for the first ten years to false for objective function
+    !calculation
+    do i = 1,365*10
+      valid(i) = .false.
+    end do
+    uztwc_sp = init_smois(1)
+    uzfwc_sp = init_smois(2)
+    lztwc_sp = init_smois(3)
+    lzfsc_sp = init_smois(4)
+    lzfpc_sp = init_smois(5)
+    adimc_sp = init_smois(6)
+  end if
 !  print *,'done spinup'
 !  print *,uztwc,uzfwc,lztwc,lzfsc,lzfpc,adimc
 
-!set single precision state variables
-  uztwc_sp = real(uztwc,kind(sp))
-  uzfwc_sp = real(uzfwc,kind(sp))
-  lztwc_sp = real(lztwc,kind(sp))
-  lzfsc_sp = real(lzfsc,kind(sp))
-  lzfpc_sp = real(lzfpc,kind(sp))
-  adimc_sp = real(adimc,kind(sp))
-
-!reset snow-17 carryover variables
-  tprev = 0.0
-  cs = 0.0
 
 !set sac output variables to zero
   qs = 0.0
@@ -111,7 +127,7 @@ subroutine snow17_sacsma_eval(a, obj_val)
 
   call calc_pet_pt(a)
 
-!print *,'pet',pet(100),end_pt
+!print *,'pet',pet(100),end_pt,trim(spin_type),tair(1000),precip(1000)
 
 !print *,uztwc_sp,uzfwc_sp,lztwc_sp,lzfsc_sp,lzfpc_sp,adimc_sp
 
@@ -160,9 +176,11 @@ subroutine snow17_sacsma_eval(a, obj_val)
       !SAC OUTPUTS
 		    qs(i),qg(i),tci(i),eta(i))
 
-
+!    print *,i,tair(i),tci(i),raim(i),eta(i)
   enddo
 
+!print *,qs(1000),qg(1000),tci(1000),end_pt,sim_length
+!print *,year(1),day(1),month(1),year(sim_length),month(sim_length),day(sim_length)
 !print *,'model done'
 
   dtuh = real(dt/sec_day)
@@ -181,7 +199,7 @@ subroutine snow17_sacsma_eval(a, obj_val)
 			         !shape,scale
   endif
 
-!print *,'unit hydrograph',a(18)
+!print *,'unit hydrograph',a(18),route_tci(1000),streamflow(1000),end_pt
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !
 !      calculate objective function for daily streamflow

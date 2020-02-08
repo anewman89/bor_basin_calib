@@ -93,28 +93,27 @@ module gauge_calib
     end subroutine get_start_points
 
 
-    subroutine read_streamflow(obs_offset,obs_val_offset,val_length)
+    subroutine read_streamflow(stream_pos)
       use nrtype
+      use constants,  only: cfs_cms, sec_day
       use snow17_sac, only: stream_name, sim_length, streamflow, val_period, &
-                        area_basin
+			    area_basin,valid,stream_yr,stream_day,stream_month, &
+			    end_yr,end_day,end_month
 
-      integer(I4B), intent(in)	:: obs_offset
-      integer(I4B), intent(in)	:: obs_val_offset
-      integer(I4B), intent(in)	:: val_length
+      integer(I4B),intent(in)	:: stream_pos
     end subroutine read_streamflow
 
 
-    subroutine read_cida_areal_forcing(forcing_offset,forcing_val_offset,val_length)
+    subroutine read_cida_areal_forcing()
       use nrtype
       use constants,  only: cfs_cms, sec_day
       use snow17_sac, only: forcing_name, sim_length, lat, elev, area_basin, &
-                        year, month, day, hour, dayl, precip, swdown, &
-                        tmax, tmin, tair, vpd, streamflow, mean_obs, &
-			val_period
+			    year, month, day, hour, dayl, precip, swdown, &
+			    tmax, tmin, tair, vpd, streamflow, mean_obs, &
+			    val_period,start_yr,start_day,start_month, &
+			    end_yr,end_day,end_month
 
-      integer(I4B), intent(in)		:: forcing_offset  !offset for forcing file to get to start of calibration period matching observed record
-      integer(I4B), intent(in)		:: forcing_val_offset !offset for focing file to get to start of validation period matching observed record
-      integer(I4B), intent(in)		:: val_length		!length of validation period
+
     end subroutine read_cida_areal_forcing
 
 
