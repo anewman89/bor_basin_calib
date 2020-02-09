@@ -90,10 +90,10 @@ calib_pgf77 = $(sceproc_77) $(sac_77)
 #========================================================================
 
 # Define the Fortran Compilers
-FC  = pgf90
-FC77 = pgf77
-#FC  = ifort
-
+#FC  = pgf90
+#FC77 = pgf77
+FC  = ifort
+FC77 = ifort
 # Define the libraries and path to include files
 ifeq "$(FC)" "pgf90"
  LOCL_PATH = /usr/local
@@ -115,7 +115,7 @@ calib_DRIVER= \
 DRIVER = $(patsubst %, $(DRIVER_DIR)/%, $(calib_DRIVER))
 
 # Define the executable
-DRIVER__EX = gage_calib_sac.exe
+DRIVER__EX = nwsrfs_calib.exe
 
 
 #========================================================================
