@@ -461,7 +461,7 @@ program test_upper_colo
 			  qs(i),qg(i),tci(i),eta(i))
 !print *,pet(i),a(20),tair(i),precip(i)
 
-      write(unit=46,30) year(i),month(i),day(i),hour(i),uztwc_sp,uzfwc_sp,lztwc_sp,lzfsc_sp,lzfpc_sp,adimc_sp,eta(i)
+      write(46,30) year(i),month(i),day(i),hour(i),uztwc_sp,uzfwc_sp,lztwc_sp,lzfsc_sp,lzfpc_sp,adimc_sp,eta(i)
 
     enddo  !end simulation loop
     close(unit=46)
@@ -533,19 +533,19 @@ program test_upper_colo
       if(a(18) .gt. 0) then
 !	write(unit=45,30) year(i),month(i),day(i),hour(i),sneqv(i)*1000.,precip(i),raim_snow17(i),pet(i),tair(i),(route_tci(i)+qg(i)),streamflow(i)
 	if(trim(spin_type) .eq. "first_year_repeat") then
-	    write(unit=45,30) year(i),month(i),day(i),hour(i),sneqv(i)*1000.,precip(i),raim_snow17(i),pet(i),tair(i),route_tci(i),streamflow(i)
+	    write(45,30) year(i),month(i),day(i),hour(i),sneqv(i)*1000.,precip(i),raim_snow17(i),pet(i),tair(i),route_tci(i),streamflow(i)
 	else if(trim(spin_type) .eq. "first_ten_years") then
 	  if(valid(i)) then
-	    write(unit=45,30) year(i),month(i),day(i),hour(i),sneqv(i)*1000.,precip(i),raim_snow17(i),pet(i),tair(i),route_tci(i),streamflow(i)
+	    write(45,30) year(i),month(i),day(i),hour(i),sneqv(i)*1000.,precip(i),raim_snow17(i),pet(i),tair(i),route_tci(i),streamflow(i)
 	  end if
 	end if
       else
 !	write(unit=45,30) year(i),month(i),day(i),hour(i),sneqv(i)*1000.,precip(i),raim_snow17(i),pet(i),tair(i),(tci(i)+qg(i)),streamflow(i)
 	if(trim(spin_type) .eq. "first_year_repeat") then
-	  write(unit=45,30) year(i),month(i),day(i),hour(i),sneqv(i)*1000.,precip(i),raim_snow17(i),pet(i),tair(i),tci(i),streamflow(i)
+	  write(45,30) year(i),month(i),day(i),hour(i),sneqv(i)*1000.,precip(i),raim_snow17(i),pet(i),tair(i),tci(i),streamflow(i)
 	else if(trim(spin_type) .eq. "first_ten_years") then
 	  if(valid(i)) then
-	    write(unit=45,30) year(i),month(i),day(i),hour(i),sneqv(i)*1000.,precip(i),raim_snow17(i),pet(i),tair(i),tci(i),streamflow(i)
+	    write(45,30) year(i),month(i),day(i),hour(i),sneqv(i)*1000.,precip(i),raim_snow17(i),pet(i),tair(i),tci(i),streamflow(i)
 	  end if
 	end if
       endif

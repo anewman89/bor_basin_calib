@@ -1,0 +1,81 @@
+&INIT_CONTROL
+init_smois    = 550.0, 500.0, 580.0, 500.0, 525.0, 500.0  !initial soil moisture state for sac-sma  !can stay static
+forcing_name  = "/d5/anewman/basin_forcing_data/maurer/14/09378630_lump_maurer_forcing_leap.txt"    !needs to change for basin forcing
+stream_name  = "/d2/anewman/usgs_streamflow/14/009378630_streamflow_1980_leap.txt"                  !needs to change for basin obs streamflow
+model_out = "/d2/anewman/hcdn_output/14/sac_vic_const_forc/009378630_model_output_maurer.txt"       !basin specific output
+opt_name = "/d2/anewman/hcdn_output/14/sac_vic_const_forc/region_14_opt.txt"                        !parameter file for running optimized model (would not use this)
+gage_id = 009378630                                                                                 !change for each basin (may not be used in calibration though)
+dt            = 86400  !model time step in seconds (86400 = 1 day)                                  !constant
+sim_length       = 1827   !simulation length in days for calibration period                         !can stay constant for our calibration
+spin_type        = "first_ten_years"                                                                !can stay constant for our calibration
+opt = 1                                                                                             !constant
+val_period = 0                                                                                      !constant
+metric        = "rmse" !can be set to rmse, mse, nse, or kge                                        !we could consider trying KGE...  I don't know if it has been rigorously tested though...
+
+!calibrated paramter (bad namelist organization to have it here!)
+pet_coef      = 1.4,1.26,1.74   !priestly-taylor coefficient for pet calculation (depends on aridity of region 1.26-1.34 for humid grass/forest then up to 1.74 for very dry areas).  This parameter is optimized by SCE
+
+start_yr = 1980                 !can stay constant for our calibration
+start_month = 1                 !can stay constant for our calibration
+start_day     = 1		!can stay constant for our calibration
+
+stream_yr = 1989                !starting year for obs, can stay constant for our calibration
+stream_month   = 10		!starting month for calibration in observed streamflow data, can stay constant for our calibration
+stream_day     = 1		!starting day for calibration in observed streamflow data, can stay constant for our calibration
+
+end_yr = 1995                   !end calibration year, can stay constant for our calibration
+end_month     = 09              !end calibration month, can stay constant for our calibration
+end_day       = 30              !end calibration day, can stay constant for our calibration
+/
+
+&SNOW_17
+scf	=	1.0,	0.999,	1.001
+mfmax	=	1.209,	0.8,	3.0
+mfmin	= 	0.010,	0.01,	0.79
+uadj	=	0.043,	0.01,	0.4
+si	=	2454.498,	1.0	3500.0
+pxtemp	= 	0.0,	-0.001,	0.001
+nmf	=	0.15,	0, 	0.3 	!not optimized
+tipm	=	0.05,	0.01,	1.0 	!not optimized
+mbase	=	0.0,	0.0,	0.3 	!not optimized
+plwhc	=	0.03,	0.0,	0.4 	!not optimized
+daygm	=	0.0,	0.0,	0.01 	!not optimized
+adc	=	0.05,0.15,0.26,0.45,0.5,0.56,0.61,0.65,0.69,0.82,1.0   !not optimized,mountanous adc
+/
+
+&SAC_SMA
+uztwm	=  21.615,     1.0,   800.0
+uzfwm	=  757.617,     1.0,   800.0
+lztwm	=  541.699,     1.0,   800.0
+lzfpm	=  549.209,     1.0,  1000.0
+lzfsm   =  980.741,     1.0,  1000.0
+adimp	=  0.0,     0.0,    0.40	 !not optimized
+uzk	=  0.698,     0.1,    0.70
+lzpk	=  0.001, 0.00001,   0.025
+lzsk	=  0.045,    0.001,    0.25
+zperc	=  74.264,     1.0,   250.0
+rexp	=  2.495,     0.0,     6.0
+pctim	=  0.005,     0.0,     0.6	 !not optimized
+pfree	=  0.388,     0.0,     1.0
+riva	=   0.0		 !not optimized
+side	=   0.0		 !not optimized
+rserv	=   0.3		 !not optimized
+unit_shape 	= 1.527,	0.1,	3.0       !gamma distribution shape parameter (range typically 1-3 for this purpose)
+unit_scale 	= 2.000,	0.5,	7.0      !scale parameter (in hours) limit of 1-200 for a model timestep of 24 hours (need dt/max(unit_scale) > ~0.12)
+/
+
+&SCE
+nopt   	=  20             	 	! number of parameters to be optimized
+maxn   	=  150000         	 	! maximum number of trials before optimization is terminated
+kstop  	=  9              	 	! number of shuffling loops the value must change by PCENTO (MAX=9)
+pcento 	=  0.001          	 	! the percentage
+ngs    	=  48             	 	! number of complexes in the initial population
+npg    	=  41	        	 	! number of points in each complex (=2*NOPT + 1)
+nps    	=  21            	 	! number of points in a sub-complex (=NOPT + 1)
+nspl   	=  41            	 	! number of evolution steps allowed for each complex before shuffling (=2*NOPT + 1)
+mings  	=  12            	 	! minimum number of complexes required (=NGS)
+iniflg 	=  0             	 	! 1 = include initial point in the population
+iprint 	=  1             	 	! 0 = supress printing
+iseed = 40
+sce_fname = "/d2/anewman/sceua_output.txt"
+/

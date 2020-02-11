@@ -87,12 +87,23 @@ subroutine snow17_sacsma_eval(a, obj_val)
     do i = 1,365*10
       valid(i) = .false.
     end do
-    uztwc_sp = init_smois(1)
-    uzfwc_sp = init_smois(2)
-    lztwc_sp = init_smois(3)
-    lzfsc_sp = init_smois(4)
-    lzfpc_sp = init_smois(5)
+!    uztwc_sp = init_smois(1)
+!    uzfwc_sp = init_smois(2)
+!    lztwc_sp = init_smois(3)
+!    lzfsc_sp = init_smois(4)
+!    lzfpc_sp = init_smois(5)
+!    adimc_sp = init_smois(6)
+
+    uztwc_sp = a(7)
+    uzfwc_sp = a(8)
+    lztwc_sp = a(9)
+    lzfsc_sp = a(11)
+    lzfpc_sp = a(10)
     adimc_sp = init_smois(6)
+  !set snow-17 carryover variables
+    tprev = 0.0
+    cs = 0.0
+
   end if
 !  print *,'done spinup'
 !  print *,uztwc,uzfwc,lztwc,lzfsc,lzfpc,adimc
@@ -127,12 +138,15 @@ subroutine snow17_sacsma_eval(a, obj_val)
 
   call calc_pet_pt(a)
 
-!print *,'pet',pet(100),end_pt,trim(spin_type),tair(1000),precip(1000)
+!print *,'pet',pet(1),end_pt,trim(spin_type),tair(1),precip(1)
 
 !print *,uztwc_sp,uzfwc_sp,lztwc_sp,lzfsc_sp,lzfpc_sp,adimc_sp
+!print *, 'end',end_pt,sim_length,end_yr,end_day
+!print *,'params',a
 
+!print *,'init snow',raim_snow17(1),sneqv(1),snow(1),snowh(1)
   !now run model
-  do i = 1,end_pt
+  do i = 1,end_pt-1
 
   !set single precision inputs
     tair_sp   = real(tair(i),kind(sp))
@@ -154,8 +168,9 @@ subroutine snow17_sacsma_eval(a, obj_val)
       !SNOW17 CARRYOVER VARIABLES
 			cs,tprev) 
 
-
- !print *,'here 4',i
+!if(i .le. 2) then
+! print *,'here 4',i,raim_snow17(i),tair_sp,pet_sp,precip_sp,sneqv(i),snow(i),snowh(i)
+!endif
     call exsac(1,real(dt),raim_snow17(i),tair_sp,pet_sp,&
       !SAC PARAMETERS
 !UZTWM,UZFWM,UZK,PCTIM,ADIMP,RIVA,ZPERC, &
@@ -180,7 +195,7 @@ subroutine snow17_sacsma_eval(a, obj_val)
   enddo
 
 !print *,qs(1000),qg(1000),tci(1000),end_pt,sim_length
-!print *,year(1),day(1),month(1),year(sim_length),month(sim_length),day(sim_length)
+!print *,year(1),day(1),month(1),year(sim_length-1),month(sim_length-1),day(sim_length-1)
 !print *,'model done'
 
   dtuh = real(dt/sec_day)

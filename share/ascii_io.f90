@@ -20,7 +20,6 @@ subroutine get_model_state(cal_uztwc, cal_uzfwc, cal_lztwc, &
 
 !code
 
-  30 FORMAT(I4.4, 3(1x,I2.2),7(F12.4))
 
   pt_1 = model_out
   pt_2 = '.model_state'
@@ -30,7 +29,7 @@ subroutine get_model_state(cal_uztwc, cal_uzfwc, cal_lztwc, &
   open(UNIT=88,file=pt_1,form='formatted')
   
   do i = 1,sim_length
-    read(UNIT=88,30) dum_int,dum_int,dum_int,dum_int, &
+    read(88,30) dum_int,dum_int,dum_int,dum_int, &
                      cal_uztwc,cal_uzfwc,cal_lztwc,cal_lzfsc, &
                      cal_lzfpc,cal_adimc,dum_flt
 
@@ -38,6 +37,7 @@ subroutine get_model_state(cal_uztwc, cal_uzfwc, cal_lztwc, &
   
   close(UNIT=88)
 
+  30 FORMAT(I4.4, 3(1x,I2.2),7(F12.4))
 
   return
 end subroutine get_model_state
@@ -191,11 +191,7 @@ end subroutine get_start_points
 subroutine read_cida_areal_forcing()
   use nrtype
   use constants,  only: cfs_cms, sec_day
-  use snow17_sac, only: forcing_name, sim_length, lat, elev, area_basin, &
-                        year, month, day, hour, dayl, precip, swdown, &
-                        tmax, tmin, tair, vpd, streamflow, mean_obs, &
-			val_period,start_yr,start_day,start_month, &
-                        end_yr,end_day,end_month
+  use snow17_sac
 
   implicit none
 
@@ -307,12 +303,13 @@ subroutine read_streamflow(stream_pos)
   integer(I4B) :: diff_yr
 
   real(DP)	:: in_streamflow
+  character     :: dum_char
 
   logical	:: read_flag
 
 
 !this subroutine assumes streamflow is daily data of the following format:
-  character(len=64), parameter :: read_format = "(I8.8,1x,I4.4, 2(1x,I2.2),1x,1(F8.2))"
+  character(len=64), parameter :: read_format = "(I8.8,1x,I4.4, 2(1x,I2.2),1x,1(F8.2),1x,1A)"
 
 
 !code
@@ -329,7 +326,7 @@ subroutine read_streamflow(stream_pos)
   cnt = stream_pos
   ios = 0
   do while(ios .ge. 0)
-    read (UNIT=50,FMT=read_format,IOSTAT=ios) gauge,yr,mn,dy,in_streamflow
+    read (UNIT=50,FMT=read_format,IOSTAT=ios) gauge,yr,mn,dy,in_streamflow,dum_char
  
 !    if(yr .eq. start_yr .and. mn .eq. start_month .and. dy .eq. start_day) then
 !      read_flag = .true.

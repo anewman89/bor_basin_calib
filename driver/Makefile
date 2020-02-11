@@ -127,7 +127,9 @@ ifeq "$(FC)" "gfortran"
  FLAGS = -static -Wall -g -ffree-line-length-none
 endif
 ifeq "$(FC)" "ifort"
- FLAGS = -static -debug -warn all -check all -FR -O0 -auto -WB -traceback -g -fltconsistency -fpe0
+# FLAGS = -static -debug -warn all -check all -FR -O0 -auto -WB -traceback -g -fltconsistency -fpe0
+# FLAGS = -static -debug -warn all -check all -FR -O0 -auto -WB -traceback -g
+ FLAGS = -static -warn all -FR -O3 -fltconsistency -fpe0
 endif
 
 ifeq "$(FC)" "pgf90"
