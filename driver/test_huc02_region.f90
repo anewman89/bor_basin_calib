@@ -13,6 +13,9 @@ program test_upper_colo
 !local variables
   integer(I4B) :: i,ntau,k,m,j,cnt,start_offset
 
+  character(len=2000)           :: arg  !command line arg for namelist file
+  character(len=2000)           :: namelist_name  !command line arg for namelist file
+
   logical :: spin_up_flag
 
   integer(I4B) :: error,isce,num_basin
@@ -21,6 +24,7 @@ program test_upper_colo
   integer(I4B) :: spin_len
   !integer :: opt
 
+  real(dp) :: vol_weight = 0.5 !value of weight (0-1) for kge - seasonal volume weighting (only used in calc_kge_volume)
   real(dp) :: obj_val	!return value from objective function
   real(sp) :: dtuh	!for unit hydrograph
 
@@ -113,8 +117,18 @@ program test_upper_colo
 !may want to not have this hardcoded in the future (AJN 9/9/2013)
   spinup_crit = 0.1_dp
 
+
+!get namelist filename
+  i = 0
+  do
+    call get_command_argument(i,arg)
+    if(i .eq. 1) namelist_name=arg
+    if(LEN_TRIM(arg) == 0) EXIT
+    i = i + 1
+  end do
+
 !read namelists
-  call read_namelist
+  call read_namelist(namelist_name)
 
 
 
@@ -281,7 +295,7 @@ program test_upper_colo
       do i = 1,num_basin
 	read(99,*) basin(i), seed(i)
 	read(99,FMT='(21(F8.3))') params(i,:)
-!print *,basin(i),seed(i),num_basin,i
+print *,basin(i),seed(i),num_basin,i
       enddo
     else
       do i = 1,num_basin
@@ -296,7 +310,7 @@ program test_upper_colo
       do i = 1,num_basin
 	if(bid .eq. basin(i) .and. sid .eq. seed(i)) then
 	  loc = i
-  !print *,loc,num_basin,basin(i)
+  print *,loc,num_basin,basin(i)
 	endif
   !print *,basin(i),sid,num_basin,bid
       enddo
@@ -498,6 +512,8 @@ program test_upper_colo
       call calc_nse(route_tci_dp,streamflow_dp,end_pt,valid,obj_val)
     elseif(trim(metric) .eq. "kge" .or. trim(metric) .eq. "KGE") then
       call calc_kge(route_tci_dp,streamflow_dp,end_pt,valid,obj_val)
+    elseif(trim(metric) .eq. "kge_vol" .or. trim(metric) .eq. "KGE_VOL") then
+      call calc_kge_volume(route_tci_dp,streamflow_dp,end_pt,valid,vol_weight,obj_val)
     endif
   else
     if(trim(metric) .eq. "rmse" .or. trim(metric) .eq. "RMSE") then
@@ -508,6 +524,8 @@ program test_upper_colo
       call calc_nse(tci_dp,streamflow_dp,end_pt,valid,obj_val)
     elseif(trim(metric) .eq. "kge" .or. trim(metric) .eq. "KGE") then
       call calc_kge(tci_dp,streamflow_dp,end_pt,valid,obj_val)
+    elseif(trim(metric) .eq. "kge_vol" .or. trim(metric) .eq. "KGE_VOL") then
+      call calc_kge_volume(tci_dp,streamflow_dp,end_pt,valid,vol_weight,obj_val)
     endif
   endif
 

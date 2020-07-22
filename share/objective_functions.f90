@@ -221,6 +221,81 @@ subroutine calc_kge(model,obs,length,valid,kge)
   return
 end subroutine calc_kge
 
+
+subroutine calc_kge_volume(model,obs,length,valid,objfunc_weight,kge_volume)
+  use nrtype
+  use gauge_calib, only: calc_kge,calc_volume_mae
+  
+  implicit none
+
+!input variables
+  real(dp), dimension(36500),     intent(in)    :: model
+  real(dp), dimension(36500),     intent(in)    :: obs
+  real(dp),                       intent(in)    :: objfunc_weight
+
+  integer(I4B), intent(in)                      :: length
+  logical, dimension(36500), intent(in)         :: valid
+
+!output variables
+  real(dp),     intent(out) :: kge_volume
+
+!local variables
+  real(dp)                  :: kge
+  real(dp)                  :: volume_mae
+  
+
+  call calc_kge(model,obs,length,valid,kge)
+
+  call calc_volume_mae(model,obs,length,valid,volume_mae)
+
+  kge_volume = kge * (1.0 - objfunc_weight) + volume_mae * objfunc_weight
+
+end subroutine calc_kge_volume
+
+subroutine calc_volume_mae(model,obs,length,valid,volume_mae)
+  use nrtype
+  use snow17_sac, only: obs_month,obs_year
+
+  implicit none
+
+  !input variables
+  real(dp), dimension(36500),     intent(in)    :: model
+  real(dp), dimension(36500),     intent(in)    :: obs
+
+  integer(I4B), intent(in)                      :: length
+  logical, dimension(36500), intent(in)         :: valid
+
+  !output variables
+  real(dp),     intent(out)    :: volume_mae
+
+  !local variables
+  logical, dimension(36500)    :: vol_mask = .false.
+  integer(I4B)                 :: i
+  real(dp)                     :: mean_vol = 0.0
+
+  !code starts below
+
+  !reinitialize output variable
+  volume_mae = 0.0
+
+  do i = obs_year(1),obs_year(length),1
+    !find dates of valid flow for year i in AMJJ
+    where(obs_month .ge. 4 .and. obs_month .le. 7 .and. obs_year .eq. i .and. valid) vol_mask = .true.
+    !mean volume running total update
+    mean_vol = mean_vol + sum(model,vol_mask)
+    !find absolute bias for year i, add to running total
+    volume_mae = volume_mae + sum(abs(model-obs),vol_mask)
+    !reset volume mask logical
+    vol_mask = .false.
+  end do
+  !compute mean model volume
+  mean_vol = mean_vol/((obs_year(length)-obs_year(1))+1)
+
+  !compute normalized (by model) volume MAE
+  volume_mae = (volume_mae/((obs_year(length)-obs_year(1))+1))/mean_vol
+
+end subroutine calc_volume_mae
+
 subroutine pearson(model,obs,length,valid,corr)
   use nrtype
 

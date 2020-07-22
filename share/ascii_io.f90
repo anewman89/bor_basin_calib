@@ -288,7 +288,7 @@ subroutine read_streamflow(stream_pos)
   use constants,  only: cfs_cms, sec_day
   use snow17_sac, only: stream_name, sim_length, streamflow, val_period, &
                         area_basin,valid,stream_yr,stream_day,stream_month, &
-                        end_yr,end_day,end_month,mean_obs
+                        end_yr,end_day,end_month,mean_obs,obs_month,obs_year
   implicit none
 
 !input variables
@@ -338,7 +338,11 @@ subroutine read_streamflow(stream_pos)
 
     if(read_flag) then
       if(streamflow(cnt) .ge. 0) then
+        !pull observation year and month out
+        obs_month(cnt)  = mn
+        obs_year(cnt)   = yr
 
+        !observed streamflow
         streamflow(cnt) = in_streamflow
 
         !convert streamflow (cfs) to cms

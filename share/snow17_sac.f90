@@ -76,6 +76,8 @@ module snow17_sac
 !observed streamflow
 !  real, dimension(:),   allocatable :: streamflow
   real(dp), dimension(36500)	:: streamflow
+  real(dp), dimension(36500)	:: obs_month
+  real(dp), dimension(36500)	:: obs_year
   real(dp)			:: mean_obs
 
 !variables from mopex forcing data

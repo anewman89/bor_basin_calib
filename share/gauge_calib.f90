@@ -19,10 +19,12 @@ module gauge_calib
     end subroutine julianday_scalar
 
 
-    subroutine read_namelist
+    subroutine read_namelist(namelist_name)
       use nrtype
-    end subroutine read_namelist
+      !input variable
+      character(len=2000),intent(in)    :: namelist_name
 
+    end subroutine read_namelist
 
     subroutine snow17_sacsma_eval(a,obj_val)
       use nrtype
@@ -174,6 +176,36 @@ module gauge_calib
       real(dp),		  intent(out) :: kge
     end subroutine calc_kge
 
+    subroutine calc_kge_volume(model,obs,length,valid,objfunc_weight,kge_volume)
+      use nrtype
+  
+      !input variables
+      real(dp), dimension(36500),     intent(in)    :: model
+      real(dp), dimension(36500),     intent(in)    :: obs
+      real(dp),                       intent(in)    :: objfunc_weight
+
+      integer(I4B), intent(in)                      :: length
+      logical, dimension(36500), intent(in)         :: valid
+
+      !output variables
+      real(dp),     intent(out) :: kge_volume
+  
+    end subroutine calc_kge_volume
+
+    subroutine calc_volume_mae(model,obs,length,valid,volume_mae)
+      use nrtype
+      use snow17_sac, only: obs_month,obs_year
+
+      !input variables
+      real(dp), dimension(36500),     intent(in)    :: model
+      real(dp), dimension(36500),     intent(in)    :: obs
+
+      integer(I4B), intent(in)                      :: length
+      logical, dimension(36500), intent(in)         :: valid
+
+      !output variables
+      real(dp),     intent(out)    :: volume_mae
+    end subroutine calc_volume_mae
 
     subroutine pearson(model, obs, length,valid,corr)
       use nrtype
